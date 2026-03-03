@@ -8,8 +8,9 @@ import SwiftUI
 struct OptionsView: View {
     @EnvironmentObject var router: AppRouter
     @State private var roundDuration: Double = 80
-    @State private var soundEnabled  = true
-    @State private var hapticEnabled = true
+    
+    @ObservedObject private var audio = AudioManager.shared
+
     
     var body: some View {
         VStack(spacing: 0) {
@@ -76,27 +77,26 @@ struct OptionsView: View {
                     .padding(.horizontal, 24)
                     
                     // ── Preferencias ──────────────────────────────────
-                    SketchSectionHeader(title: "Preferencias", number: 2)
+                    SketchSectionHeader(title: "Sonido", number: 2)
                         .padding(.horizontal, 24)
                     
                     VStack(spacing: 0) {
-                        SketchToggleRow(
-                            emoji: "🔊",
-                            title: "Sonido",
-                            isOn: $soundEnabled
-                        )
-                        
-                        SketchDivider()
-                            .padding(.horizontal, 4)
-                        
-                        SketchToggleRow(
-                            emoji: "📳",
-                            title: "Vibración",
-                            isOn: $hapticEnabled
-                        )
+                        SketchToggleRow(emoji: "🎵", title: "Música de fondo", isOn: $audio.musicEnabled)
+                        SketchDivider().padding(.horizontal, 4)
+                        // Slider de volumen música (solo visible si musicEnabled)
+                        if audio.musicEnabled {
+                            SketchVolumeRow(emoji: "🔉", title: "Volumen música", volume: $audio.musicVolume)
+                            SketchDivider().padding(.horizontal, 4)
+                        }
+                        SketchToggleRow(emoji: "🔊", title: "Efectos de sonido", isOn: $audio.sfxEnabled)
+                        if audio.sfxEnabled {
+                            SketchDivider().padding(.horizontal, 4)
+                            SketchVolumeRow(emoji: "🔈", title: "Volumen efectos", volume: $audio.sfxVolume)
+                        }
                     }
                     .sketchCard(padding: 0, showMargin: false)
-                    .padding(.horizontal, 24)
+                    .animation(.spring(response: 0.3), value: audio.musicEnabled)
+                    .animation(.spring(response: 0.3), value: audio.sfxEnabled)
                     
                     Spacer(minLength: 32)
                 }
@@ -182,5 +182,48 @@ private struct SketchToggleStyle: ToggleStyle {
                 }
             }
         }
+    }
+}
+
+private struct SketchVolumeRow: View {
+    let emoji: String
+    let title: String
+    @Binding var volume: Double
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(SketchDraft.inkPrimary.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7)
+                            .strokeBorder(
+                                SketchDraft.dashedBorder,
+                                style: StrokeStyle(lineWidth: SketchDraft.borderWidth, dash: SketchDraft.dashPattern)
+                            )
+                    )
+                Text(emoji)
+                    .font(.system(size: 18))
+            }
+            .frame(width: 36, height: 36)
+            
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(title)
+                        .font(SketchDraft.fontBody(14))
+                        .foregroundStyle(SketchDraft.inkPrimary)
+                    Spacer()
+                    Text("\(Int(volume * 100))%")
+                        .font(SketchDraft.fontCaption(11))
+                        .foregroundStyle(SketchDraft.inkSecondary)
+                        .sketchBadge(color: .neutral)
+                }
+                
+                Slider(value: $volume, in: 0...1, step: 0.05)
+                    .tint(SketchDraft.inkPrimary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }

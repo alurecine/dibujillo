@@ -280,6 +280,7 @@ final class GameViewModel: ObservableObject {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
             showCelebration = true
         }
+        AudioManager.shared.playCorrect()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) { [weak self] in
             withAnimation(.easeOut(duration: 0.5)) {
                 self?.showCelebration = false

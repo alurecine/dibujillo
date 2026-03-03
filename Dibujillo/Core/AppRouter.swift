@@ -90,6 +90,7 @@ struct RootView: View {
                 print("Auth error: \(error) — continuing in offline mode")
             }
             authReady = true
+            AudioManager.shared.startMusic()
         }
     }
 }

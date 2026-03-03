@@ -36,9 +36,9 @@ final class MatchmakingService: ObservableObject {
     private var searchTask: Task<Void, Never>?
     private var pollTimer: AnyCancellable?
     
-    private let waitDuration: TimeInterval = 60      // Máximo espera sin jugadores
+    private let waitDuration: TimeInterval = 100      // Máximo espera sin jugadores
     private let launchCountdown: TimeInterval = 20   // Countdown al alcanzar mínimo
-    private let minPlayersToStart = 2
+    private let minPlayersToStart = 4
     
     // MARK: - Start Matchmaking
     
