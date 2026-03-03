@@ -130,7 +130,7 @@ struct OnlineGameView: View {
             gameTopBar
                 .padding(.horizontal, DSSpacing.sm)
         })
-        .ignoresSafeArea(.keyboard)
+        .ignoresSafeArea(vm.isDrawer ? .keyboard : [], edges: .bottom)
     }
     
     // MARK: - Top Bar
@@ -142,7 +142,7 @@ struct OnlineGameView: View {
                 Image(systemName: "clock.fill")
                     .font(.system(size: 12))
                 Text("\(vm.timeRemaining)s")
-                    .font(DSFont.mono(14))
+                    .font(DSFont.mono(16))
                     .monospacedDigit()
             }
             .foregroundColor(vm.timeRemaining <= 15 ? DSColors.error : DSColors.textPrimary)
@@ -172,8 +172,8 @@ struct OnlineGameView: View {
             Spacer()
             
             if let room = vm.room {
-                Text("R\(room.currentRoundNumber)/\(room.totalRounds)")
-                    .font(DSFont.caption(11))
+                Text("Ronda \(room.currentRoundNumber) de \(room.totalRounds)")
+                    .font(DSFont.caption(14))
                     .foregroundColor(DSColors.textSecondary)
             }
         }
