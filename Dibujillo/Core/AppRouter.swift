@@ -55,7 +55,8 @@ struct RootView: View {
                     case .mainMenu:
                         MainMenuView()
                     case .game:
-                        GameContainerView()
+//                        GameContainerView()
+                        EmptyView()
                     case .onlineMatchmaking:
                         OnlineLobbyView()
                     case .privateRoom:

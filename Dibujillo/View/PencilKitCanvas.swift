@@ -23,7 +23,8 @@ struct PencilKitCanvas: UIViewRepresentable {
         canvas.minimumZoomScale = 1
         canvas.maximumZoomScale = 1
         canvas.zoomScale = 1
-        
+        canvas.contentInsetAdjustmentBehavior = .never
+
         canvas.overrideUserInterfaceStyle = .light
         return canvas
     }

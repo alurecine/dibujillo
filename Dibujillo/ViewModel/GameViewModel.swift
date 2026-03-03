@@ -34,6 +34,9 @@ final class GameViewModel: ObservableObject {
     @Published var timeRemaining: Int = 80
     private var timerCancellable: AnyCancellable?
     
+    // Hint reveal
+    @Published var revealedLetterIndices: Set<Int> = []
+    
     // Guessing
     @Published var guessText: String = ""
     @Published var roundGuesses: [GuessResult] = []
@@ -114,12 +117,9 @@ final class GameViewModel: ObservableObject {
     
     // MARK: - Game Flow
     
-    /// Agrega jugadores locales (por ahora simulados) + el jugador principal
     func setupLocalGame(hostName: String, botNames: [String] = ["Luna", "Max", "Sofía"]) {
         var list = [Player(name: hostName)]
-        for name in botNames {
-            list.append(Player(name: name))
-        }
+        for name in botNames { list.append(Player(name: name)) }
         players = list
         roundNumber = 0
         usedWords = []
@@ -128,19 +128,13 @@ final class GameViewModel: ObservableObject {
     
     func startGame() {
         roundNumber = 0
-        // Reset scores
-        for i in players.indices {
-            players[i].totalScore = 0
-        }
+        for i in players.indices { players[i].totalScore = 0 }
         nextRound()
     }
     
     func nextRound() {
         roundNumber += 1
-        if roundNumber > players.count {
-            endGame()
-            return
-        }
+        if roundNumber > players.count { endGame(); return }
         
         // Limpiar estado
         drawing = PKDrawing()
@@ -148,6 +142,7 @@ final class GameViewModel: ObservableObject {
         roundGuesses = []
         chatMessages = []
         showCelebration = false
+        revealedLetterIndices = []
         
         // Asignar dibujante (rotativo)
         let drawerIndex = roundNumber - 1
@@ -167,7 +162,6 @@ final class GameViewModel: ObservableObject {
             word: word
         )
         
-        // Fase intro (breve)
         phase = .roundIntro
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             self?.phase = .drawing
@@ -187,6 +181,10 @@ final class GameViewModel: ObservableObject {
                 guard let self else { return }
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
+                    let elapsed = self.config.roundDurationSeconds - self.timeRemaining
+                    if elapsed > 0 && elapsed % 10 == 0 {
+                        self.revealNextLetter()
+                    }
                 } else {
                     self.endRound()
                 }
@@ -198,15 +196,22 @@ final class GameViewModel: ObservableObject {
         timerCancellable = nil
     }
     
+    private func revealNextLetter() {
+        let chars = Array(currentWord)
+        let candidates = chars.indices.filter {
+            !revealedLetterIndices.contains($0) && chars[$0] != " "
+        }
+        guard let pick = candidates.randomElement() else { return }
+        revealedLetterIndices.insert(pick)
+    }
+    
     // MARK: - Guessing
     
-    /// Llamada cuando un jugador envía un intento
     func submitGuess(playerID: UUID) {
         guard phase == .drawing,
               let roundRef = currentRound,
               !roundRef.isFinished else { return }
         
-        // No puede adivinar el dibujante
         guard let idx = players.firstIndex(where: { $0.id == playerID }),
               !players[idx].isDrawing,
               !players[idx].hasGuessedThisRound else { return }
@@ -217,12 +222,10 @@ final class GameViewModel: ObservableObject {
         let normalized = rawText
             .lowercased()
             .folding(options: .diacriticInsensitive, locale: .current)
-        
         let target = roundRef.word
             .lowercased()
             .folding(options: .diacriticInsensitive, locale: .current)
         
-        // Agregar al chat siempre (acertó o no)
         let isCorrect = (normalized == target)
         
         if !isCorrect {
@@ -251,15 +254,10 @@ final class GameViewModel: ObservableObject {
         
         addChatMessage(playerName: players[idx].name, text: "¡Adivinó! 🎉", isCorrect: true)
         guessText = ""
-        
-        // Celebración para el jugador local
         triggerCelebration(points: points)
         
-        // Si todos adivinaron, termina la ronda
         let pendingGuessers = players.filter { !$0.isDrawing && !$0.hasGuessedThisRound }
-        if pendingGuessers.isEmpty {
-            endRound()
-        }
+        if pendingGuessers.isEmpty { endRound() }
     }
     
     // MARK: - Chat
@@ -277,23 +275,18 @@ final class GameViewModel: ObservableObject {
     
     private func triggerCelebration(points: Int) {
         celebrationPoints = points
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-            showCelebration = true
-        }
-        AudioManager.shared.playCorrect()
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { showCelebration = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) { [weak self] in
-            withAnimation(.easeOut(duration: 0.5)) {
-                self?.showCelebration = false
-            }
+            withAnimation(.easeOut(duration: 0.5)) { self?.showCelebration = false }
         }
     }
     
-    /// Simulación de bot adivinando (para demo local)
+    // MARK: - Bot simulation
+    
     func simulateBotGuesses() {
         guard phase == .drawing else { return }
         let bots = players.filter { !$0.isDrawing && $0.name != players.first?.name }
         for (_, bot) in bots.enumerated() {
-            // Bots envían intentos incorrectos random antes de acertar
             let wrongDelay = Double.random(in: 3...12)
             DispatchQueue.main.asyncAfter(deadline: .now() + wrongDelay) { [weak self] in
                 guard let self, self.phase == .drawing else { return }
@@ -315,12 +308,7 @@ final class GameViewModel: ObservableObject {
                 self.players[idx].roundScore = points
                 self.players[idx].totalScore += points
                 
-                let result = GuessResult(
-                    player: self.players[idx],
-                    rank: rank,
-                    pointsEarned: points,
-                    timestamp: .now
-                )
+                let result = GuessResult(player: self.players[idx], rank: rank, pointsEarned: points, timestamp: .now)
                 self.roundGuesses.append(result)
                 self.currentRound?.guesses.append(result)
                 self.addChatMessage(playerName: bot.name, text: "¡Adivinó! 🎉", isCorrect: true)
@@ -337,10 +325,8 @@ final class GameViewModel: ObservableObject {
         stopTimer()
         currentRound?.isFinished = true
         
-        // Puntos al dibujante
         let totalGuessers = players.filter { !$0.isDrawing }.count
-        let guessedCount = roundGuesses.count
-        let drawerPts = config.drawerPoints(guessedCount: guessedCount, totalGuessers: totalGuessers)
+        let drawerPts = config.drawerPoints(guessedCount: roundGuesses.count, totalGuessers: totalGuessers)
         lastRoundDrawerPoints = drawerPts
         
         if let dIdx = players.firstIndex(where: { $0.isDrawing }) {
@@ -368,6 +354,7 @@ final class GameViewModel: ObservableObject {
         roundGuesses = []
         chatMessages = []
         showCelebration = false
+        revealedLetterIndices = []
         for i in players.indices {
             players[i].totalScore = 0
             players[i].roundScore = 0

@@ -105,14 +105,32 @@ struct OnlineGameView: View {
     
     private var drawingPhaseView: some View {
         VStack(spacing: 0) {
-            gameTopBar
-            
             if vm.isDrawer {
                 drawerView
             } else {
                 guesserView
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            Group {
+                if vm.isDrawer {
+                    OnlineDrawingToolbar(vm: vm)
+                        .padding(.horizontal, DSSpacing.sm)
+                        .padding(.vertical, DSSpacing.sm)
+                } else {
+                    guessInputView
+                        .padding(.horizontal, DSSpacing.md)
+                        .padding(.top, DSSpacing.sm)
+                        .padding(.bottom, DSSpacing.md)
+                }
+            }
+            .background(Color.black.opacity(0.001))
+        }
+        .safeAreaInset(edge: .top, content: {
+            gameTopBar
+                .padding(.horizontal, DSSpacing.sm)
+        })
+        .ignoresSafeArea(.keyboard)
     }
     
     // MARK: - Top Bar
@@ -149,12 +167,6 @@ struct OnlineGameView: View {
                 .padding(.vertical, DSSpacing.xs)
                 .background(DSColors.primary.opacity(0.08))
                 .cornerRadius(DSRadius.sm)
-            } else {
-                let hint = vm.currentWord.map { $0 == " " ? "  " : " _ " }.joined()
-                Text(hint)
-                    .font(DSFont.mono(18))
-                    .foregroundColor(DSColors.textPrimary)
-                    .tracking(2)
             }
             
             Spacer()
@@ -165,9 +177,8 @@ struct OnlineGameView: View {
                     .foregroundColor(DSColors.textSecondary)
             }
         }
-        .padding(.horizontal, DSSpacing.lg)
-        .padding(.vertical, DSSpacing.sm)
-        .background(DSColors.surface.opacity(0.95))
+        .sketchCard(padding: DSSpacing.md, showMargin: true)
+        .modifier(DSShadow.elevated())
     }
     
     // MARK: - Drawer View
@@ -185,12 +196,9 @@ struct OnlineGameView: View {
                         .allowsHitTesting(false)
                 }
             }
+            .frame(maxHeight: .infinity)
             .padding(.horizontal, DSSpacing.sm)
             .padding(.top, DSSpacing.sm)
-            
-            OnlineDrawingToolbar(vm: vm)
-                .padding(.horizontal, DSSpacing.sm)
-                .padding(.vertical, DSSpacing.sm)
         }
     }
     
@@ -220,7 +228,6 @@ struct OnlineGameView: View {
             VStack(spacing: 0) {
                 guessedPlayersStrip
                 
-                // Remote canvas (read-only) + chat superpuesto
                 ZStack(alignment: .bottomLeading) {
                     ZStack {
                         RoundedRectangle(cornerRadius: DSRadius.xl)
@@ -233,6 +240,22 @@ struct OnlineGameView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: DSRadius.xl))
                         .allowsHitTesting(false)
+                        
+                        VStack {
+                            let chars = Array(vm.currentWord)
+                            let hint = chars.enumerated().map { (i, c) -> String in
+                                if c == " " { return "  " }
+                                return vm.revealedLetterIndices.contains(i) ? " \(c) " : " _ "
+                            }.joined()
+                            Text(hint)
+                                .font(DSFont.title(35))
+                                .foregroundColor(DSColors.accent)
+                                .tracking(2)
+                                .padding(.vertical, 35)
+                            
+                            Spacer()
+                        }
+                        
                     }
                     
                     if !vm.visibleChat.isEmpty {
@@ -244,15 +267,6 @@ struct OnlineGameView: View {
                 .frame(maxHeight: .infinity)
                 .padding(.horizontal, DSSpacing.sm)
                 .padding(.top, DSSpacing.sm)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Input siempre arriba del teclado
-            .safeAreaInset(edge: .bottom) {
-                guessInputView
-                    .padding(.horizontal, DSSpacing.md)
-                    .padding(.top, DSSpacing.sm)
-                    .padding(.bottom, DSSpacing.md)
-                    .background(Color.black.opacity(0.001))
             }
             
             if vm.showCelebration {
@@ -266,9 +280,7 @@ struct OnlineGameView: View {
         .onTapGesture {
             UIApplication.shared.sendAction(
                 #selector(UIResponder.resignFirstResponder),
-                to: nil,
-                from: nil,
-                for: nil
+                to: nil, from: nil, for: nil
             )
         }
     }
@@ -340,9 +352,7 @@ struct OnlineGameView: View {
                         .foregroundColor(DSColors.success)
                     Spacer()
                 }
-                .padding(DSSpacing.md)
-                .background(DSColors.success.opacity(0.08))
-                .cornerRadius(DSRadius.md)
+                .sketchCard(padding: DSRadius.md, showMargin: true)
             } else {
                 HStack(spacing: DSSpacing.sm) {
                     HStack(spacing: DSSpacing.sm) {
@@ -353,20 +363,17 @@ struct OnlineGameView: View {
                             .font(DSFont.body())
                             .submitLabel(.send)
                             .onSubmit { vm.submitGuess() }
+                            .sketchTextField()
                     }
-                    .padding(DSSpacing.md)
-                    .background(DSColors.surfaceAlt)
-                    .cornerRadius(DSRadius.md)
                     
                     Button { vm.submitGuess() } label: {
                         Image(systemName: "paperplane.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                            .background(DSColors.primaryGradient)
-                            .cornerRadius(DSRadius.md)
+                            .font(.system(size: 18, weight: .semibold))
+                            .frame(width: 18, height: 18)
+                            .sketchButton(style: .primary)
                     }
                 }
+                .sketchCard(padding: DSRadius.md, showMargin: true)
             }
         }
     }
@@ -535,24 +542,42 @@ struct OnlineGameView: View {
     }
 }
 
-// MARK: - Online Drawing Toolbar (reutiliza la misma lógica)
+// MARK: - Online Drawing Toolbar
 
 struct OnlineDrawingToolbar: View {
     @ObservedObject var vm: OnlineGameViewModel
-    @State private var showColorPicker = false
-    @State private var showWidthSlider = false
     @Environment(\.undoManager) private var undoManager
     
+    /// Grosores predefinidos: fino, medio, grueso
+    private enum WidthPreset: CaseIterable {
+        case thin, medium, thick
+        
+        var width: CGFloat {
+            switch self {
+                case .thin:   return 5
+                case .medium: return 15
+                case .thick:  return 30
+            }
+        }
+        
+        var dotSize: CGFloat {
+            switch self {
+                case .thin:   return 5
+                case .medium: return 10
+                case .thick:  return 16
+            }
+        }
+    }
+    
     var body: some View {
-        VStack(spacing: DSSpacing.sm) {
+        VStack(spacing: DSSpacing.md) {
+            // Fila 1: Herramientas (izq) + Grosores (der)
             HStack(spacing: DSSpacing.sm) {
-                // Tools
+                // Herramientas de dibujo
                 HStack(spacing: 6) {
                     ForEach(GameViewModel.ToolMode.allCases) { mode in
                         Button {
                             vm.toolMode = mode
-                            showColorPicker = false
-                            showWidthSlider = false
                         } label: {
                             Text(mode.rawValue)
                                 .font(.system(size: 18))
@@ -570,79 +595,202 @@ struct OnlineDrawingToolbar: View {
                 
                 Spacer()
                 
-                // Color
-                Button { showColorPicker.toggle(); showWidthSlider = false } label: {
-                    Circle().fill(vm.inkColor).frame(width: 28, height: 28)
-                        .overlay(Circle().stroke(DSColors.border, lineWidth: 2))
-                }
-                
-                // Width
-                Button { showWidthSlider.toggle(); showColorPicker = false } label: {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(showWidthSlider ? DSColors.primary.opacity(0.1) : DSColors.surfaceAlt)
-                            .frame(width: 36, height: 36)
-                        Circle().fill(DSColors.textPrimary)
-                            .frame(width: max(4, vm.lineWidth * 0.7))
-                    }
-                }
-                
-                Spacer()
-                
-                // Actions
-                HStack(spacing: 6) {
-                    Button { undoManager?.undo() } label: {
-                        Image(systemName: "arrow.uturn.backward").font(.system(size: 14, weight: .medium))
-                            .foregroundColor(DSColors.textSecondary).frame(width: 34, height: 34)
-                            .background(DSColors.surfaceAlt).cornerRadius(DSRadius.sm)
-                    }.disabled(!(undoManager?.canUndo ?? false))
-                    
-                    Button { undoManager?.redo() } label: {
-                        Image(systemName: "arrow.uturn.forward").font(.system(size: 14, weight: .medium))
-                            .foregroundColor(DSColors.textSecondary).frame(width: 34, height: 34)
-                            .background(DSColors.surfaceAlt).cornerRadius(DSRadius.sm)
-                    }.disabled(!(undoManager?.canRedo ?? false))
-                    
-                    Button { vm.clearCanvas() } label: {
-                        Image(systemName: "trash").font(.system(size: 14, weight: .medium))
-                            .foregroundColor(DSColors.error).frame(width: 34, height: 34)
-                            .background(DSColors.surfaceAlt).cornerRadius(DSRadius.sm)
+                // Selectores de grosor
+                HStack(spacing: 8) {
+                    ForEach(WidthPreset.allCases, id: \.width) { preset in
+                        Button {
+                            vm.lineWidth = preset.width
+                            if vm.toolMode == .eraser { vm.toolMode = .pen }
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(vm.lineWidth == preset.width ? DSColors.primary.opacity(0.12) : DSColors.surfaceAlt)
+                                    .frame(width: 34, height: 34)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(vm.lineWidth == preset.width ? DSColors.primary.opacity(0.4) : Color.clear, lineWidth: 1.5)
+                                    )
+                                Circle()
+                                    .fill(vm.lineWidth == preset.width ? DSColors.primary : DSColors.textPrimary)
+                                    .frame(width: preset.dotSize, height: preset.dotSize)
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
-            .padding(.horizontal, DSSpacing.md)
-            .padding(.vertical, DSSpacing.sm)
-            .background(DSColors.surface)
-            .cornerRadius(DSRadius.lg)
-            .modifier(DSShadow.soft())
             
-            if showColorPicker {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6), spacing: 8) {
-                    ForEach(GameViewModel.palette, id: \.self) { color in
-                        Button { vm.inkColor = color; if vm.toolMode == .eraser { vm.toolMode = .pen } } label: {
-                            Circle().fill(color).frame(width: 30, height: 30)
-                                .overlay(Circle().stroke(vm.inkColor == color ? DSColors.primary : Color.clear, lineWidth: 2.5).padding(-2))
-                                .overlay(Circle().stroke(color == .white ? DSColors.border : Color.clear, lineWidth: 1))
+            // Fila 2: Paleta de colores (scroll) + Acciones (der)
+            HStack(spacing: DSSpacing.sm) {
+                // Paleta de colores en scroll horizontal
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(GameViewModel.palette, id: \.self) { color in
+                            Button {
+                                vm.inkColor = color
+                                if vm.toolMode == .eraser { vm.toolMode = .pen }
+                            } label: {
+                                Circle().fill(color).frame(width: 28, height: 28)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(vm.inkColor == color ? DSColors.primary : Color.clear, lineWidth: 2.5)
+                                            .padding(-2)
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(color == .white ? DSColors.border : Color.clear, lineWidth: 1)
+                                    )
+                            }
                         }
                     }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 5)
                 }
-                .padding(DSSpacing.md).background(DSColors.surface).cornerRadius(DSRadius.md).modifier(DSShadow.soft())
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            
-            if showWidthSlider {
-                HStack(spacing: DSSpacing.sm) {
-                    Image(systemName: "circle.fill").font(.system(size: 4)).foregroundColor(DSColors.textSecondary)
-                    Slider(value: $vm.lineWidth, in: 1...30, step: 1).tint(DSColors.primary)
-                    Image(systemName: "circle.fill").font(.system(size: 14)).foregroundColor(DSColors.textSecondary)
-                    Text("\(Int(vm.lineWidth))").font(DSFont.mono(12)).foregroundColor(DSColors.textSecondary).frame(width: 26, alignment: .trailing)
+                
+                // Acciones: undo / redo / clear
+                HStack(spacing: 6) {
+                    Button { undoManager?.undo() } label: {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(DSColors.textSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(DSColors.surfaceAlt)
+                            .cornerRadius(DSRadius.sm)
+                    }
+                    .disabled(!(undoManager?.canUndo ?? false))
+                    
+                    Button { undoManager?.redo() } label: {
+                        Image(systemName: "arrow.uturn.forward")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(DSColors.textSecondary)
+                            .frame(width: 34, height: 34)
+                            .background(DSColors.surfaceAlt)
+                            .cornerRadius(DSRadius.sm)
+                    }
+                    .disabled(!(undoManager?.canRedo ?? false))
+                    
+                    Button { vm.clearCanvas() } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(DSColors.error)
+                            .frame(width: 34, height: 34)
+                            .background(DSColors.surfaceAlt)
+                            .cornerRadius(DSRadius.sm)
+                    }
                 }
-                .padding(.horizontal, DSSpacing.md).padding(.vertical, DSSpacing.sm)
-                .background(DSColors.surface).cornerRadius(DSRadius.md).modifier(DSShadow.soft())
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showColorPicker)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showWidthSlider)
+        .sketchCard(padding: DSSpacing.md, showMargin: true)
     }
 }
+
+// MARK: - Preview Helpers
+
+#if DEBUG
+
+/// Helper para crear un OnlineGameViewModel con estado preconfigurado para previews
+@MainActor
+private func makePreviewVM(
+    phase: OnlineGameViewModel.OnlinePhase,
+    isDrawer: Bool = true
+) -> OnlineGameViewModel {
+    let vm = OnlineGameViewModel()
+    
+    let myID = vm.myID  // usa el mismo ID que el VM va a comparar
+    let otherID = "preview-other-456"
+    
+    var room = RoomModel(
+        code: "ABC123",
+        type: .publicMatch,
+        hostID: myID,
+        hostName: "Yo",
+        maxPlayers: 8,
+        roundDuration: 80
+    )
+    room.status = phase == .gameOver ? .finished : .playing
+    room.currentRoundNumber = 1
+    room.totalRounds = 3
+    room.currentWord = "corona"
+    room.currentDrawerID = isDrawer ? myID : otherID
+    
+    var me = OnlinePlayer(id: myID, name: "Yo", isHost: true)
+    me.isDrawing = isDrawer
+    me.totalScore = 150
+    
+    var other = OnlinePlayer(id: otherID, name: "Luna")
+    other.isDrawing = !isDrawer
+    other.totalScore = 120
+    
+    var player3 = OnlinePlayer(id: "p3", name: "Max")
+    player3.totalScore = 80
+    
+    room.players = [me, other, player3]
+    
+    room.chatMessages = [
+        OnlineChatMessage(playerID: otherID, playerName: "Luna", text: "¿es un sombrero?", isCorrect: false, isSystem: false, timestamp: .now),
+        OnlineChatMessage(playerID: "p3", playerName: "Max", text: "parece una montaña", isCorrect: false, isSystem: false, timestamp: .now),
+    ]
+    
+    if phase == .roundResults || phase == .gameOver {
+        room.roundGuesses = [
+            OnlineGuessResult(playerID: otherID, playerName: "Luna", rank: 1, pointsEarned: 100, timestamp: .now),
+            OnlineGuessResult(playerID: "p3", playerName: "Max", rank: 2, pointsEarned: 75, timestamp: .now),
+        ]
+    }
+    
+    vm.room = room
+    vm.phase = phase
+    vm.timeRemaining = 66
+    vm.visibleChat = Array(room.chatMessages.suffix(6))
+    
+    if phase == .gameOver {
+        vm.finalScoreboard = [
+            ScoreboardEntry(rank: 1, player: { var p = Player(name: "Yo"); p.totalScore = 150; return p }()),
+            ScoreboardEntry(rank: 2, player: { var p = Player(name: "Luna"); p.totalScore = 120; return p }()),
+            ScoreboardEntry(rank: 3, player: { var p = Player(name: "Max"); p.totalScore = 80; return p }()),
+        ]
+    }
+    
+    // ← Esto evita que startObserving() pise el estado con nil
+    RoomService.shared.currentRoom = room
+    
+    return vm
+}
+
+#Preview("Drawer Phase") {
+    OnlineGameView(vm: makePreviewVM(phase: .drawing, isDrawer: true))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#Preview("Guesser Phase") {
+    OnlineGameView(vm: makePreviewVM(phase: .drawing, isDrawer: false))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#Preview("Round Intro") {
+    OnlineGameView(vm: makePreviewVM(phase: .roundIntro, isDrawer: true))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#Preview("Round Results") {
+    OnlineGameView(vm: makePreviewVM(phase: .roundResults))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#Preview("Game Over") {
+    OnlineGameView(vm: makePreviewVM(phase: .gameOver))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#Preview("Lobby") {
+    OnlineGameView(vm: makePreviewVM(phase: .lobby))
+        .environmentObject(AppRouter())
+        .environmentObject(DSToastManager())
+}
+
+#endif

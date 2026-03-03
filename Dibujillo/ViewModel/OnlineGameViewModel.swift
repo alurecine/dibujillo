@@ -54,6 +54,10 @@ final class OnlineGameViewModel: ObservableObject {
     // MARK: - Cancellables
     private var roomCancellable: AnyCancellable?
     
+    
+    // Hint reveal
+    @Published var revealedLetterIndices: Set<Int> = []
+    
     // MARK: - Computed
     
     var myID: String { auth.currentUID }
@@ -177,6 +181,7 @@ final class OnlineGameViewModel: ObservableObject {
         previousDrawing = PKDrawing()
         guessText = ""
         showCelebration = false
+        revealedLetterIndices = []
         
         // Round intro brief
         phase = .roundIntro
@@ -207,14 +212,26 @@ final class OnlineGameViewModel: ObservableObject {
                 guard let self else { return }
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
+                    let elapsed = duration - self.timeRemaining
+                    if elapsed > 0 && elapsed % 10 == 0 {
+                        self.revealNextLetter()
+                    }
                 } else {
                     self.timerCancellable?.cancel()
-                    // Host inicia siguiente ronda o results
                     if self.room?.hostID == self.myID {
                         self.phase = .roundResults
                     }
                 }
             }
+    }
+    
+    private func revealNextLetter() {
+        let chars = Array(currentWord)
+        let candidates = chars.indices.filter {
+            !revealedLetterIndices.contains($0) && chars[$0] != " "
+        }
+        guard let pick = candidates.randomElement() else { return }
+        revealedLetterIndices.insert(pick)
     }
     
     // MARK: - Drawing Sync (drawer sends strokes)
