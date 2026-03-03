@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B32938392F5333CE0057FF13 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B32938382F5333CE0057FF13 /* FirebaseAuth */; };
+		B329383B2F5333D40057FF13 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B329383A2F5333D40057FF13 /* FirebaseFirestore */; };
+		B329383D2F5333D80057FF13 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = B329383C2F5333D80057FF13 /* FirebaseDatabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B32937F42F5324970057FF13 /* Dibujillo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dibujillo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +29,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B329383D2F5333D80057FF13 /* FirebaseDatabase in Frameworks */,
+				B32938392F5333CE0057FF13 /* FirebaseAuth in Frameworks */,
+				B329383B2F5333D40057FF13 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -33,6 +42,7 @@
 			isa = PBXGroup;
 			children = (
 				B32937F62F5324970057FF13 /* Dibujillo */,
+				B32938372F5333CE0057FF13 /* Frameworks */,
 				B32937F52F5324970057FF13 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +53,13 @@
 				B32937F42F5324970057FF13 /* Dibujillo.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		B32938372F5333CE0057FF13 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +82,9 @@
 			);
 			name = Dibujillo;
 			packageProductDependencies = (
+				B32938382F5333CE0057FF13 /* FirebaseAuth */,
+				B329383A2F5333D40057FF13 /* FirebaseFirestore */,
+				B329383C2F5333D80057FF13 /* FirebaseDatabase */,
 			);
 			productName = Dibujillo;
 			productReference = B32937F42F5324970057FF13 /* Dibujillo.app */;
@@ -94,6 +114,9 @@
 			);
 			mainGroup = B32937EB2F5324970057FF13;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B32937F52F5324970057FF13 /* Products */;
 			projectDirPath = "";
@@ -256,11 +279,14 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -288,11 +314,14 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -332,6 +361,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B32938382F5333CE0057FF13 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		B329383A2F5333D40057FF13 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		B329383C2F5333D80057FF13 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B32937EC2F5324970057FF13 /* Project object */;
 }
