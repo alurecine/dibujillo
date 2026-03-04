@@ -76,7 +76,7 @@ struct MainMenuView: View {
                     subtitle: "Partida offline con bots",
                     accentColor: SketchDraft.pencilGray
                 ) {
-                    router.goTo(.game)
+                    router.goTo(.localGame)
                 }
                 .padding(.horizontal, 24)
                 .offset(y: animateIn ? 0 : 30)
@@ -97,6 +97,9 @@ struct MainMenuView: View {
                 SketchSmallCard(emoji: "⚙️", title: "Opciones") {
                     router.goTo(.options)
                 }
+                SketchSmallCard(emoji: "📩", title: "Invitar") {
+                    shareAppLink()
+                }
             }
             .padding(.horizontal, 24)
             .padding(.top, 14)
@@ -113,6 +116,16 @@ struct MainMenuView: View {
             }
         }
         .onDisappear { animateIn = false }
+    }
+    
+    // MARK: - Share
+    
+    private func shareAppLink() {
+        let message = "¡Jugá Dibujillo conmigo! 🎨✏️\nDescargalo acá: https://apps.apple.com/app/dibujillo/id_TU_APP"
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let root = scene.windows.first?.rootViewController else { return }
+        let vc = UIActivityViewController(activityItems: [message], applicationActivities: nil)
+        root.present(vc, animated: true)
     }
 }
 

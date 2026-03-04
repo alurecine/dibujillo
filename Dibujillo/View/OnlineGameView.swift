@@ -11,11 +11,10 @@ struct OnlineGameView: View {
     @ObservedObject var vm: OnlineGameViewModel
     @Environment(\.dismiss) private var dismiss
     @StateObject private var keyboard = KeyboardObserver()
+    @State private var showExitPanel = false
     
     var body: some View {
         ZStack {
-            //            DSColors.backgroundGradient.ignoresSafeArea()
-            
             switch vm.phase {
                 case .lobby:
                     onlineLobby
@@ -31,6 +30,9 @@ struct OnlineGameView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .notebookBackground()
+        .overlay(alignment: .trailing) {
+            exitTabOverlay
+        }
         .onAppear {
             vm.startObserving()
         }
@@ -38,6 +40,98 @@ struct OnlineGameView: View {
             vm.leaveRoom()
             vm.stopObserving()
         }
+    }
+    
+    // MARK: - Exit Tab
+    
+    private var exitTabOverlay: some View {
+        VStack {
+            HStack(spacing: 0) {
+                // Panel expandido
+                if showExitPanel {
+                    VStack(spacing: DSSpacing.md) {
+                        Text("¿Salir de la partida?")
+                            .font(SketchDraft.fontBold(13))
+                            .foregroundStyle(SketchDraft.inkPrimary)
+                        
+                        Button {
+                            vm.leaveRoom()
+                            dismiss()
+                            router.goTo(.mainMenu)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Salir al menú")
+                                    .font(SketchDraft.fontBold(13))
+                            }
+                            .sketchButton(style: .danger)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(DSSpacing.lg)
+                    .background {
+                        RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                            .fill(SketchDraft.paper)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                                    .strokeBorder(
+                                        SketchDraft.dashedBorder,
+                                        style: StrokeStyle(lineWidth: SketchDraft.borderWidth, dash: SketchDraft.dashPattern)
+                                    )
+                            )
+                            .shadow(color: .black.opacity(0.12), radius: 8, x: -2, y: 3)
+                    }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+                
+                // Tab / pestaña
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        showExitPanel.toggle()
+                    }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: showExitPanel ? "xmark" : "line.3.horizontal")
+                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        if !showExitPanel {
+                            Text("≡")
+                                .font(SketchDraft.fontCaption(9))
+                        }
+                    }
+                    .foregroundStyle(SketchDraft.inkPrimary)
+                    .frame(width: 32, height: 56)
+                    .background {
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: SketchDraft.cornerRadius,
+                            bottomLeadingRadius: SketchDraft.cornerRadius,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 0
+                        )
+                        .fill(SketchDraft.paper)
+                        .overlay(
+                            UnevenRoundedRectangle(
+                                topLeadingRadius: SketchDraft.cornerRadius,
+                                bottomLeadingRadius: SketchDraft.cornerRadius,
+                                bottomTrailingRadius: 0,
+                                topTrailingRadius: 0
+                            )
+                            .strokeBorder(
+                                SketchDraft.dashedBorder,
+                                style: StrokeStyle(lineWidth: SketchDraft.borderWidth, dash: SketchDraft.dashPattern)
+                            )
+                        )
+                        .shadow(color: .black.opacity(0.10), radius: 4, x: -2, y: 2)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.top, 120)
+            
+            Spacer()
+            
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showExitPanel)
     }
     
     // MARK: - Online Lobby (fallback if shown)
@@ -57,12 +151,11 @@ struct OnlineGameView: View {
     
     private var roundIntroView: some View {
         VStack(spacing: DSSpacing.xl) {
-            Spacer()
             
             if let room = vm.room {
                 Text("Ronda \(room.currentRoundNumber)/\(room.totalRounds)")
-                    .font(DSFont.heading())
-                    .foregroundColor(DSColors.textSecondary)
+                    .font(SketchDraft.fontBody(20))
+                    .foregroundColor(SketchDraft.inkSecondary)
             }
             
             VStack(spacing: DSSpacing.md) {
@@ -71,34 +164,34 @@ struct OnlineGameView: View {
                 
                 if vm.isDrawer {
                     Text("¡Te toca dibujar!")
-                        .font(DSFont.title(28))
-                        .foregroundColor(DSColors.primary)
+                        .font(SketchDraft.fontTitle(28))
+                        .foregroundColor(SketchDraft.inkPrimary)
                     
                     Text("Tu palabra es:")
-                        .font(DSFont.body())
-                        .foregroundColor(DSColors.textSecondary)
+                        .font(SketchDraft.fontBody(16))
+                        .foregroundColor(SketchDraft.inkSecondary)
                     
-                    Text(vm.currentWord)
-                        .font(DSFont.title(32))
+                    Text(vm.currentWord.uppercased())
+                        .font(SketchDraft.fontTitle(34))
                         .foregroundColor(DSColors.accent)
-                        .padding(.horizontal, DSSpacing.xl)
+                        .padding(.horizontal, DSSpacing.xxl)
                         .padding(.vertical, DSSpacing.md)
                         .background(DSColors.accent.opacity(0.1))
                         .cornerRadius(DSRadius.md)
                 } else {
                     let drawerName = vm.room?.players.first(where: { $0.isDrawing })?.name ?? "Alguien"
                     Text("\(drawerName) dibuja")
-                        .font(DSFont.title(28))
-                        .foregroundColor(DSColors.primary)
+                        .font(SketchDraft.fontTitle(28))
+                        .foregroundColor(SketchDraft.inkPrimary)
                     
                     Text("¡Preparate para adivinar!")
-                        .font(DSFont.body())
-                        .foregroundColor(DSColors.textSecondary)
+                        .font(SketchDraft.fontBody(20))
+                        .foregroundColor(SketchDraft.inkSecondary)
                 }
             }
             
-            Spacer()
         }
+        .sketchCard(padding: DSSpacing.xl, showMargin: false)
     }
     
     // MARK: - Drawing Phase
@@ -247,11 +340,11 @@ struct OnlineGameView: View {
                                 if c == " " { return "  " }
                                 return vm.revealedLetterIndices.contains(i) ? " \(c) " : " _ "
                             }.joined()
-                            Text(hint)
+                            Text(hint.uppercased())
                                 .font(DSFont.title(35))
                                 .foregroundColor(DSColors.accent)
                                 .tracking(2)
-                                .padding(.vertical, 35)
+                                .padding(.vertical, 30)
                             
                             Spacer()
                         }
@@ -409,18 +502,17 @@ struct OnlineGameView: View {
             Spacer()
             
             Text("🏆").font(.system(size: 48))
-            Text("Resultados de la ronda")
-                .font(DSFont.title(24))
-                .foregroundColor(DSColors.textPrimary)
+            Text("Resultados parciales")
+                .font(SketchDraft.fontTitle(30))
+                .foregroundStyle(SketchDraft.inkPrimary)
             
             if let room = vm.room {
-                DSCard {
                     VStack(spacing: DSSpacing.md) {
                         if let drawer = room.players.first(where: { $0.isDrawing }) {
                             HStack {
                                 Text("🎨 \(drawer.name) (dibujante)")
-                                    .font(DSFont.body())
-                                    .foregroundColor(DSColors.textPrimary)
+                                    .font(SketchDraft.fontBody())
+                                    .foregroundStyle(SketchDraft.inkSecondary)
                                 Spacer()
                                 DSBadge(text: "+\(drawer.roundScore)", color: DSColors.primary)
                             }
@@ -428,9 +520,16 @@ struct OnlineGameView: View {
                         
                         Divider()
                         
-                        Text("La palabra era: \(room.currentWord ?? "—")")
-                            .font(DSFont.heading(16))
-                            .foregroundColor(DSColors.accent)
+                        HStack(spacing: 0) {
+                            Text("La palabra era ")
+                                .font(SketchDraft.fontBody(16))
+                                .foregroundColor(DSColors.accent)
+                            
+                            Text("\(room.currentWord?.uppercased() ?? "—")")
+                                .font(SketchDraft.fontBody(20))
+                                .foregroundColor(DSColors.accent)
+                                .bold()
+                        }
                         
                         Divider()
                         
@@ -443,17 +542,16 @@ struct OnlineGameView: View {
                                 HStack {
                                     Text(rankEmoji(guess.rank))
                                     Text(guess.playerName)
-                                        .font(DSFont.body())
-                                        .foregroundColor(DSColors.textPrimary)
+                                        .font(SketchDraft.fontBody())
+                                        .foregroundStyle(SketchDraft.inkSecondary)
                                     Spacer()
                                     DSBadge(text: "+\(guess.pointsEarned)", color: DSColors.success)
                                 }
                             }
                         }
                     }
-                    .padding(DSSpacing.lg)
-                }
-                .padding(.horizontal, DSSpacing.xl)
+                    .sketchCard(padding: DSSpacing.xl)
+                    .padding(DSSpacing.md)
             }
             
             Spacer()
@@ -490,45 +588,47 @@ struct OnlineGameView: View {
             
             Text("🎉").font(.system(size: 56))
             Text("¡Fin de la partida!")
-                .font(DSFont.title(28))
-                .foregroundColor(DSColors.primary)
+                .font(SketchDraft.fontTitle(30))
+                .foregroundStyle(SketchDraft.inkPrimary)
             
-            DSCard {
-                VStack(spacing: DSSpacing.md) {
-                    Text("Ranking final")
-                        .font(DSFont.heading())
-                    
-                    ForEach(vm.finalScoreboard) { entry in
-                        HStack {
-                            Text(entry.medal)
-                                .font(.system(size: 24))
-                                .frame(width: 36)
-                            Text(entry.player.name)
-                                .font(DSFont.body())
-                                .fontWeight(entry.rank <= 3 ? .bold : .regular)
-                                .foregroundColor(entry.rank == 1 ? DSColors.primary : DSColors.textSecondary)
-                            Spacer()
-                            Text("\(entry.player.totalScore) pts")
-                                .font(DSFont.mono(15))
-                                .foregroundColor(entry.rank == 1 ? DSColors.primary : DSColors.textSecondary)
-                        }
+            VStack(spacing: DSSpacing.md) {
+                Text("Ranking final")
+                    .font(SketchDraft.fontBody(20))
+                    .foregroundStyle(SketchDraft.inkSecondary)
+                
+                ForEach(vm.finalScoreboard) { entry in
+                    HStack {
+                        Text(entry.medal)
+                            .font(.system(size: 24))
+                            .frame(width: 36)
+                        Text(entry.player.name)
+                            .font(SketchDraft.fontBody(16))
+                            .fontWeight(entry.rank <= 3 ? .bold : .regular)
+                            .foregroundColor(entry.rank == 1 ? DSColors.primary : DSColors.textSecondary)
+                        Spacer()
+                        Text("\(entry.player.totalScore) pts")
+                            .font(SketchDraft.fontBody(16))
+                            .foregroundColor(entry.rank == 1 ? DSColors.primary : DSColors.textSecondary)
                     }
                 }
-                .padding(DSSpacing.lg)
             }
+            .sketchCard(padding: DSSpacing.xl)
             .padding(.horizontal, DSSpacing.xl)
             
             Spacer()
             
-            VStack(spacing: DSSpacing.md) {
-                DSButton("Volver al menú", icon: "house.fill") {
-                    vm.leaveRoom()
-                    dismiss()
-                    router.goTo(.mainMenu)
+            Button {
+                vm.leaveRoom()
+                dismiss()
+                router.goTo(.mainMenu)
+            } label: {
+                HStack {
+                    Image(systemName: "house.fill")
+                    Text("Volver al menú")
                 }
             }
-            .padding(.horizontal, DSSpacing.xl)
-            .padding(.bottom, DSSpacing.xxl)
+            .sketchButton(style: .primary)
+            .padding(.bottom, DSSpacing.md)
         }
     }
     
@@ -696,7 +796,7 @@ private func makePreviewVM(
 ) -> OnlineGameViewModel {
     let vm = OnlineGameViewModel()
     
-    let myID = vm.myID  // usa el mismo ID que el VM va a comparar
+    let myID = vm.myID
     let otherID = "preview-other-456"
     
     var room = RoomModel(
@@ -707,7 +807,15 @@ private func makePreviewVM(
         maxPlayers: 8,
         roundDuration: 80
     )
-    room.status = phase == .gameOver ? .finished : .playing
+    
+    // Status correcto según la fase
+    switch phase {
+        case .lobby:       room.status = .waiting
+        case .roundIntro:  room.status = .starting
+        case .gameOver:    room.status = .finished
+        default:           room.status = .playing
+    }
+    
     room.currentRoundNumber = 1
     room.totalRounds = 3
     room.currentWord = "corona"
@@ -726,6 +834,13 @@ private func makePreviewVM(
     
     room.players = [me, other, player3]
     
+    // Para roundResults: marcar guessers como que ya adivinaron
+    if phase == .roundResults {
+        for i in room.players.indices where !room.players[i].isDrawing {
+            room.players[i].hasGuessedThisRound = true
+        }
+    }
+    
     room.chatMessages = [
         OnlineChatMessage(playerID: otherID, playerName: "Luna", text: "¿es un sombrero?", isCorrect: false, isSystem: false, timestamp: .now),
         OnlineChatMessage(playerID: "p3", playerName: "Max", text: "parece una montaña", isCorrect: false, isSystem: false, timestamp: .now),
@@ -739,7 +854,9 @@ private func makePreviewVM(
     }
     
     vm.room = room
-    vm.phase = phase
+    // roundResults arranca como .drawing para que handleRoomUpdate
+    // no dispare handleNewRound, y el check "allGuessed" transite a .roundResults
+    vm.phase = (phase == .roundResults) ? .drawing : phase
     vm.timeRemaining = 66
     vm.visibleChat = Array(room.chatMessages.suffix(6))
     
@@ -751,7 +868,6 @@ private func makePreviewVM(
         ]
     }
     
-    // ← Esto evita que startObserving() pise el estado con nil
     RoomService.shared.currentRoom = room
     
     return vm
