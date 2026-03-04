@@ -70,18 +70,18 @@ struct MainMenuView: View {
                 .opacity(animateIn ? 1 : 0)
                 .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.10), value: animateIn)
                 
-                SketchMenuCard(
-                    emoji: "🎮",
-                    title: "Jugar Local",
-                    subtitle: "Partida offline con bots",
-                    accentColor: SketchDraft.pencilGray
-                ) {
-                    router.goTo(.localGame)
-                }
-                .padding(.horizontal, 24)
-                .offset(y: animateIn ? 0 : 30)
-                .opacity(animateIn ? 1 : 0)
-                .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.15), value: animateIn)
+//                SketchMenuCard(
+//                    emoji: "🎮",
+//                    title: "Jugar Local",
+//                    subtitle: "Partida offline con bots",
+//                    accentColor: SketchDraft.pencilGray
+//                ) {
+//                    router.goTo(.localGame)
+//                }
+//                .padding(.horizontal, 24)
+//                .offset(y: animateIn ? 0 : 30)
+//                .opacity(animateIn ? 1 : 0)
+//                .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.15), value: animateIn)
             }
             
             SketchDivider(label: "más opciones")
@@ -108,6 +108,9 @@ struct MainMenuView: View {
             .animation(.spring(response: 0.55, dampingFraction: 0.78).delay(0.22), value: animateIn)
             
             Spacer()
+            
+            AdBannerView()
+            
         }
         .notebookBackground()
         .onAppear {

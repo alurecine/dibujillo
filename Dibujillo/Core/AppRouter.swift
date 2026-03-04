@@ -11,7 +11,7 @@ import Combine
 enum AppScreen: Equatable {
     case nameEntry
     case mainMenu
-    case localGame                 // Local (offline con bots)
+//    case localGame                 // Local (offline con bots)
     case onlineMatchmaking    // Buscar partida pública
     case privateRoom          // Crear / unirse a sala privada
     case tutorial
@@ -54,8 +54,8 @@ struct RootView: View {
                         NameEntryView()
                     case .mainMenu:
                         MainMenuView()
-                    case .localGame:
-                        GameContainerView()
+//                    case .localGame:
+//                        GameContainerView()
                     case .onlineMatchmaking:
                         OnlineLobbyView()
                     case .privateRoom:
@@ -89,6 +89,9 @@ struct RootView: View {
             } catch {
                 print("Auth error: \(error) — continuing in offline mode")
             }
+            
+            await RemoteConfigService.shared.fetchAndActivate() // obtener las configuraciones remotas
+            
             authReady = true
             AudioManager.shared.startMusic()
         }

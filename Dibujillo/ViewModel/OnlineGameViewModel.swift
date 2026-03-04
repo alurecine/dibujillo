@@ -206,6 +206,11 @@ final class OnlineGameViewModel: ObservableObject {
     private func startTimer(duration: Int) {
         timeRemaining = duration
         timerCancellable?.cancel()
+        
+        // Intervalo de reveal según largo de la palabra (espacios excluidos)
+        let letterCount = currentWord.filter { $0 != " " }.count
+        let revealInterval = letterCount > 7 ? 15 : 20
+        
         timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -213,7 +218,7 @@ final class OnlineGameViewModel: ObservableObject {
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
                     let elapsed = duration - self.timeRemaining
-                    if elapsed > 0 && elapsed % 10 == 0 {
+                    if elapsed > 0 && elapsed % revealInterval == 0 {
                         self.revealNextLetter()
                     }
                 } else {

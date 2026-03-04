@@ -10,15 +10,30 @@
 		B32938392F5333CE0057FF13 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = B32938382F5333CE0057FF13 /* FirebaseAuth */; };
 		B329383B2F5333D40057FF13 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = B329383A2F5333D40057FF13 /* FirebaseFirestore */; };
 		B329383D2F5333D80057FF13 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = B329383C2F5333D80057FF13 /* FirebaseDatabase */; };
+		B355537B2F58AB6E00284428 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = B355537A2F58AB6E00284428 /* GoogleMobileAds */; };
+		B35553882F58BBFB00284428 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = B35553872F58BBFB00284428 /* FirebaseRemoteConfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B32937F42F5324970057FF13 /* Dibujillo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Dibujillo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B355537D2F58ABA100284428 /* Exceptions for "Dibujillo" folder in "Dibujillo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B32937F32F5324970057FF13 /* Dibujillo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B32937F62F5324970057FF13 /* Dibujillo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B355537D2F58ABA100284428 /* Exceptions for "Dibujillo" folder in "Dibujillo" target */,
+			);
 			path = Dibujillo;
 			sourceTree = "<group>";
 		};
@@ -29,9 +44,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B355537B2F58AB6E00284428 /* GoogleMobileAds in Frameworks */,
 				B329383D2F5333D80057FF13 /* FirebaseDatabase in Frameworks */,
 				B32938392F5333CE0057FF13 /* FirebaseAuth in Frameworks */,
 				B329383B2F5333D40057FF13 /* FirebaseFirestore in Frameworks */,
+				B35553882F58BBFB00284428 /* FirebaseRemoteConfig in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +102,8 @@
 				B32938382F5333CE0057FF13 /* FirebaseAuth */,
 				B329383A2F5333D40057FF13 /* FirebaseFirestore */,
 				B329383C2F5333D80057FF13 /* FirebaseDatabase */,
+				B355537A2F58AB6E00284428 /* GoogleMobileAds */,
+				B35553872F58BBFB00284428 /* FirebaseRemoteConfig */,
 			);
 			productName = Dibujillo;
 			productReference = B32937F42F5324970057FF13 /* Dibujillo.app */;
@@ -116,6 +135,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				B35553792F58AB6E00284428 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B32937F52F5324970057FF13 /* Products */;
@@ -279,6 +299,7 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Dibujillo/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -314,6 +335,7 @@
 				DEVELOPMENT_TEAM = GKHZ4MY3NF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Dibujillo/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -371,6 +393,14 @@
 				minimumVersion = 12.10.0;
 			};
 		};
+		B35553792F58AB6E00284428 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -388,6 +418,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseDatabase;
+		};
+		B355537A2F58AB6E00284428 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B35553792F58AB6E00284428 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+		B35553872F58BBFB00284428 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B32938362F5333B80057FF13 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

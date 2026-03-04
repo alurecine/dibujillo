@@ -35,6 +35,7 @@ struct OnlineGameView: View {
         }
         .onAppear {
             vm.startObserving()
+            InterstitialAdManager.shared.loadAd()
         }
         .onDisappear {
             vm.leaveRoom()
@@ -55,9 +56,11 @@ struct OnlineGameView: View {
                             .foregroundStyle(SketchDraft.inkPrimary)
                         
                         Button {
-                            vm.leaveRoom()
-                            dismiss()
-                            router.goTo(.mainMenu)
+                            InterstitialAdManager.shared.showAd {
+                                vm.leaveRoom()
+                                dismiss()
+                                router.goTo(.mainMenu)
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -618,9 +621,11 @@ struct OnlineGameView: View {
             Spacer()
             
             Button {
-                vm.leaveRoom()
-                dismiss()
-                router.goTo(.mainMenu)
+                InterstitialAdManager.shared.showAd {
+                    vm.leaveRoom()
+                    dismiss()
+                    router.goTo(.mainMenu)
+                }
             } label: {
                 HStack {
                     Image(systemName: "house.fill")
