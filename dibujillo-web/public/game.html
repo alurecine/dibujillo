@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dibujillo — ¡A jugar!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Caveat:wght@400;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --paper:#f7f7ed;--paper-dark:#212119;
+  --rule-line:rgba(140,170,200,0.35);--margin-line:rgba(220,60,60,0.22);
+  --ink:#1e1e2e;--ink-s:rgba(30,30,46,0.65);--ink-t:rgba(30,30,46,0.22);
+  --dash-b:rgba(82,82,82,0.30);--highlight:rgba(255,242,100,0.72);
+  --blue:#2e61d1;--red:#cc2424;--green:#238f48;
+  --line-sp:28px;--bw:1.5px;--rad:12px;
+  --mono:'Space Mono',monospace;--hand:'Caveat',cursive;--head:'Nunito',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--mono);color:var(--ink);background:var(--paper);user-select:none;-webkit-user-select:none}
+
+/* ── Notebook BG ─────────────────────── */
+.nb-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent,transparent calc(var(--line-sp) - 1px),var(--rule-line) calc(var(--line-sp) - 1px),var(--rule-line) var(--line-sp));
+  background-position:0 14px}
+
+/* ── Utility ─────────────────────────── */
+.sketch-card{background:var(--paper);border:var(--bw) dashed var(--dash-b);border-radius:var(--rad);padding:18px;position:relative;box-shadow:3px 3px 0 rgba(0,0,0,0.08)}
+.sketch-card::before{content:'';position:absolute;inset:0;border-radius:var(--rad);pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent,transparent calc(var(--line-sp) - 1px),var(--rule-line) calc(var(--line-sp) - 1px),var(--rule-line) var(--line-sp));
+  background-position:0 10px;opacity:0.4}
+.badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:50px;border:1.2px dashed;font-family:var(--mono);letter-spacing:0.5px}
+.badge-blue{color:var(--blue);border-color:rgba(46,97,209,0.4);background:rgba(46,97,209,0.08)}
+.badge-red{color:var(--red);border-color:rgba(204,36,36,0.4);background:rgba(204,36,36,0.08)}
+.badge-green{color:var(--green);border-color:rgba(35,143,72,0.4);background:rgba(35,143,72,0.08)}
+.highlight{position:relative;display:inline}
+.highlight::after{content:'';position:absolute;left:-4px;right:-4px;bottom:2px;height:45%;background:var(--highlight);z-index:-1;transform:rotate(-0.5deg)}
+.section-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-s);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.section-label .num{color:var(--margin-line);font-weight:700}
+.section-label::after{content:'';flex:1;height:1px;border-top:1px dashed var(--dash-b)}
+
+/* ── Screens ─────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;transition:opacity 0.4s,transform 0.4s;z-index:1}
+.screen.hidden{opacity:0;pointer-events:none;transform:translateY(20px);z-index:0}
+.screen.active{opacity:1;pointer-events:auto;transform:translateY(0)}
+
+/* ── Lobby ────────────────────────────── */
+#lobby{justify-content:center;align-items:center;text-align:center;padding:24px}
+#lobby .mascot{font-size:80px;animation:float 4s ease-in-out infinite}
+#lobby h1{font-family:var(--hand);font-size:clamp(48px,10vw,72px);font-weight:700;line-height:1;margin:8px 0}
+#lobby .sub{font-size:13px;color:var(--ink-s);margin-bottom:24px}
+.name-input{font-family:var(--mono);font-size:16px;color:var(--ink);background:transparent;border:none;border-bottom:2px solid var(--ink-t);padding:10px 4px;width:100%;max-width:280px;text-align:center;outline:none;transition:border-color 0.3s}
+.name-input:focus{border-bottom-color:var(--blue)}
+.name-input::placeholder{color:var(--ink-t)}
+.players-list{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:20px 0}
+.player-chip{font-size:12px;padding:6px 14px;border-radius:8px;border:var(--bw) dashed var(--dash-b);background:var(--paper);box-shadow:2px 2px 0 rgba(0,0,0,0.06)}
+.player-chip.you{border-color:var(--blue);color:var(--blue);background:rgba(46,97,209,0.06)}
+.btn{font-family:var(--mono);font-size:14px;font-weight:700;padding:14px 32px;border:none;border-radius:10px;cursor:pointer;transition:all 0.25s;display:inline-flex;align-items:center;gap:10px}
+.btn-primary{background:var(--ink);color:var(--paper);box-shadow:3px 3px 0 rgba(0,0,0,0.2)}
+.btn-primary:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 rgba(0,0,0,0.25)}
+.btn-primary:disabled{opacity:0.4;cursor:default;transform:none;box-shadow:3px 3px 0 rgba(0,0,0,0.1)}
+.btn-secondary{background:var(--paper);color:var(--ink);border:var(--bw) dashed var(--dash-b);box-shadow:2px 2px 0 rgba(0,0,0,0.06)}
+.btn-secondary:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 rgba(0,0,0,0.1)}
+
+/* ── Round Intro ──────────────────────── */
+#round-intro{justify-content:center;align-items:center;text-align:center;padding:24px}
+#round-intro .round-badge{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-s);margin-bottom:12px}
+#round-intro .drawer-name{font-family:var(--head);font-size:28px;font-weight:900;margin-bottom:16px}
+#round-intro .word-reveal{margin-top:12px}
+#round-intro .word-label{font-size:12px;color:var(--ink-s);margin-bottom:6px}
+#round-intro .word-text{font-family:var(--head);font-size:36px;font-weight:900;color:var(--blue);padding:8px 20px;display:inline-block;position:relative}
+#round-intro .word-text::after{content:'';position:absolute;left:-4px;right:-4px;bottom:4px;height:40%;background:var(--highlight);z-index:-1}
+
+/* ── Drawing Phase ────────────────────── */
+#drawing-phase{padding:0}
+.game-top{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--paper);border-bottom:1px dashed var(--dash-b);flex-shrink:0;z-index:10}
+.timer-badge{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:20px;transition:all 0.3s}
+.timer-badge.normal{background:rgba(30,30,46,0.06);color:var(--ink)}
+.timer-badge.danger{background:rgba(204,36,36,0.1);color:var(--red);animation:pulse 1s ease-in-out infinite}
+.word-display{display:flex;align-items:center;gap:6px;font-size:12px;margin-left:auto}
+.word-display .word-val{font-weight:700;font-size:14px;letter-spacing:1px}
+.round-info{font-size:10px;color:var(--ink-s);letter-spacing:1px}
+.hint-display{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:6px;text-align:center;padding:8px;color:var(--ink)}
+
+/* Canvas area */
+.canvas-area{flex:1;position:relative;overflow:hidden;min-height:0}
+.canvas-area canvas{display:block;width:100%;height:100%;cursor:crosshair;background:#fff;touch-action:none}
+
+/* Chat overlay */
+.chat-overlay{position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:4px;pointer-events:none;max-width:220px;z-index:5}
+.chat-msg{font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(247,247,237,0.92);backdrop-filter:blur(4px);border:1px dashed var(--dash-b);animation:chatIn 0.35s ease;pointer-events:none}
+.chat-msg .name{font-weight:700;margin-right:4px}
+.chat-msg.correct{background:rgba(35,143,72,0.12);border-color:rgba(35,143,72,0.3)}
+.chat-msg.correct .name{color:var(--green)}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--paper);border-top:1px dashed var(--dash-b);flex-shrink:0;flex-wrap:wrap}
+.tool-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;border:none;background:transparent;border-radius:8px;cursor:pointer;transition:all 0.2s}
+.tool-btn.active{background:rgba(46,97,209,0.15);box-shadow:inset 0 0 0 1.5px rgba(46,97,209,0.3)}
+.color-dot{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform 0.2s,border-color 0.2s;flex-shrink:0}
+.color-dot:hover{transform:scale(1.15)}
+.color-dot.active{border-color:var(--ink);transform:scale(1.1)}
+.size-slider{width:80px;accent-color:var(--blue)}
+.size-val{font-size:10px;color:var(--ink-s);width:20px;text-align:right}
+.toolbar-sep{width:1px;height:24px;background:var(--dash-b);margin:0 4px}
+.clear-btn{font-family:var(--mono);font-size:11px;font-weight:700;padding:5px 12px;background:none;border:1.2px dashed var(--red);border-radius:6px;color:var(--red);cursor:pointer;transition:all 0.2s;margin-left:auto}
+.clear-btn:hover{background:rgba(204,36,36,0.06)}
+
+/* Celebration */
+.celebration{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(247,247,237,0.85);backdrop-filter:blur(6px);animation:celebIn 0.4s ease}
+.celebration .star{font-size:64px;animation:celebBounce 0.6s ease}
+.celebration .pts{font-family:var(--head);font-size:32px;font-weight:900;color:var(--green);margin-top:8px}
+.celebration .msg{font-size:14px;color:var(--ink-s);margin-top:4px}
+
+/* Guessed strip */
+.guessed-strip{display:flex;gap:6px;padding:6px 12px;background:rgba(35,143,72,0.04);border-bottom:1px dashed var(--dash-b);overflow-x:auto;flex-shrink:0}
+.guessed-chip{display:flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(35,143,72,0.08);border:1px dashed rgba(35,143,72,0.3);color:var(--green);animation:chipIn 0.3s ease;white-space:nowrap}
+
+/* ── Round Results ────────────────────── */
+#round-results{justify-content:center;align-items:center;padding:24px;text-align:center}
+.results-card{width:100%;max-width:400px}
+.results-card h2{font-family:var(--head);font-size:24px;font-weight:900;margin-bottom:4px}
+.results-word{font-size:14px;color:var(--ink-s);margin-bottom:16px}
+.results-list{text-align:left}
+.result-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--dash-b)}
+.result-row:last-child{border-bottom:none}
+.result-rank{font-size:18px;width:28px;text-align:center}
+.result-name{flex:1;font-size:14px}
+.result-pts{font-size:12px;font-weight:700}
+.drawer-pts{margin-top:12px;font-size:13px;color:var(--ink-s);padding:8px;background:rgba(46,97,209,0.06);border-radius:8px;border:1px dashed rgba(46,97,209,0.2)}
+.countdown-ring{position:relative;width:64px;height:64px;margin:20px auto 0}
+.countdown-ring svg{transform:rotate(-90deg)}
+.countdown-ring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.countdown-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-s);margin-top:6px}
+
+/* ── Game Over ────────────────────────── */
+#game-over{justify-content:center;align-items:center;padding:24px;text-align:center}
+.go-card{width:100%;max-width:420px}
+.go-card .trophy{font-size:56px;margin-bottom:8px}
+.go-card h2{font-family:var(--head);font-size:28px;font-weight:900;margin-bottom:20px}
+.final-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;margin-bottom:8px;transition:transform 0.3s}
+.final-row:hover{transform:translate(-2px,-2px)}
+.final-row.gold{background:rgba(253,203,110,0.15);border:1.5px dashed rgba(253,203,110,0.5)}
+.final-row.silver{background:rgba(178,190,195,0.12);border:1.5px dashed rgba(178,190,195,0.4)}
+.final-row.bronze{background:rgba(225,112,85,0.1);border:1.5px dashed rgba(225,112,85,0.35)}
+.final-row.normal{background:rgba(30,30,46,0.03);border:1px dashed var(--dash-b)}
+.final-medal{font-size:22px;width:32px;text-align:center}
+.final-name{flex:1;font-size:15px;font-weight:700}
+.final-score{font-size:14px;font-weight:700;color:var(--blue)}
+.go-buttons{display:flex;gap:12px;margin-top:24px;justify-content:center;flex-wrap:wrap}
+
+/* ── Animations ──────────────────────── */
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+@keyframes chatIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes chipIn{from{opacity:0;transform:scale(0.8)}to{opacity:1;transform:scale(1)}}
+@keyframes celebIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+@keyframes celebBounce{0%{transform:scale(0.3) rotate(-10deg)}50%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Responsive ──────────────────────── */
+@media(max-width:500px){
+  .toolbar{gap:4px;padding:6px 8px}
+  .color-dot{width:20px;height:20px}
+  .tool-btn{width:32px;height:32px;font-size:14px}
+  .size-slider{width:60px}
+  .game-top{padding:6px 8px}
+  .chat-overlay{max-width:170px}
+}
+</style>
+</head>
+<body>
+<div class="nb-bg"></div>
+
+<!-- ═══════════ LOBBY ═══════════ -->
+<div id="lobby" class="screen active">
+  <div class="mascot">🎨</div>
+  <h1>Dibujillo</h1>
+  <p class="sub">Modo práctica — vos dibujás, los bots adivinan</p>
+  <input type="text" class="name-input" id="name-input" placeholder="Tu nombre..." maxlength="16" autofocus>
+  <div class="players-list" id="players-list"></div>
+  <div style="margin-top:8px">
+    <button class="btn btn-primary" id="start-btn" disabled>Empezar partida</button>
+  </div>
+  <div style="margin-top:16px">
+    <a href="index.html" class="btn btn-secondary" style="text-decoration:none;font-size:12px">← Volver</a>
+  </div>
+</div>
+
+<!-- ═══════════ ROUND INTRO ═══════════ -->
+<div id="round-intro" class="screen hidden">
+  <div class="round-badge" id="intro-round"></div>
+  <div style="font-size:52px;margin-bottom:12px">✏️</div>
+  <div class="drawer-name" id="intro-drawer"></div>
+  <div class="word-reveal" id="intro-word-wrap">
+    <div class="word-label">Tu palabra es:</div>
+    <div class="word-text" id="intro-word"></div>
+  </div>
+</div>
+
+<!-- ═══════════ DRAWING PHASE ═══════════ -->
+<div id="drawing-phase" class="screen hidden">
+  <div class="game-top">
+    <div class="timer-badge normal" id="timer-badge">
+      <span>⏱</span>
+      <span id="timer-val">80s</span>
+    </div>
+    <div class="word-display">
+      <span style="color:var(--ink-s)">Palabra:</span>
+      <span class="word-val" id="game-word"></span>
+    </div>
+    <div class="round-info" id="round-info"></div>
+  </div>
+  <div class="guessed-strip" id="guessed-strip" style="display:none"></div>
+  <div class="canvas-area">
+    <canvas id="game-canvas"></canvas>
+    <div class="chat-overlay" id="chat-overlay"></div>
+    <div class="celebration" id="celebration" style="display:none">
+      <div class="star">⭐</div>
+      <div class="pts" id="celeb-pts"></div>
+      <div class="msg">¡Un bot adivinó!</div>
+    </div>
+  </div>
+  <div class="toolbar" id="toolbar">
+    <button class="tool-btn active" data-tool="pen" title="Pluma">✏️</button>
+    <button class="tool-btn" data-tool="marker" title="Marcador">🖍️</button>
+    <button class="tool-btn" data-tool="eraser" title="Borrador">🧹</button>
+    <div class="toolbar-sep"></div>
+    <div id="color-palette" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div>
+    <div class="toolbar-sep"></div>
+    <input type="range" class="size-slider" id="size-slider" min="2" max="24" value="6">
+    <span class="size-val" id="size-val">6</span>
+    <button class="clear-btn" id="game-clear">Borrar</button>
+  </div>
+</div>
+
+<!-- ═══════════ ROUND RESULTS ═══════════ -->
+<div id="round-results" class="screen hidden">
+  <div class="results-card sketch-card" style="animation:fadeIn 0.5s ease">
+    <h2>Resultados de la ronda</h2>
+    <div class="results-word" id="results-word"></div>
+    <div class="results-list" id="results-list"></div>
+    <div class="drawer-pts" id="drawer-pts"></div>
+    <div class="countdown-ring" id="countdown-ring">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="28" fill="none" stroke="var(--dash-b)" stroke-width="3" stroke-dasharray="5 3.5"/>
+        <circle cx="32" cy="32" r="28" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round" id="cd-circle"
+          stroke-dasharray="175.93" stroke-dashoffset="0"/>
+      </svg>
+      <div class="num" id="cd-num">5</div>
+    </div>
+    <div class="countdown-label" id="cd-label">Siguiente ronda</div>
+  </div>
+</div>
+
+<!-- ═══════════ GAME OVER ═══════════ -->
+<div id="game-over" class="screen hidden">
+  <div class="go-card sketch-card" style="animation:fadeIn 0.5s ease">
+    <div class="trophy">🎉</div>
+    <h2>¡Fin de la partida!</h2>
+    <div id="final-rankings"></div>
+    <div class="go-buttons">
+      <button class="btn btn-primary" id="play-again">Jugar de nuevo</button>
+      <a href="index.html" class="btn btn-secondary" style="text-decoration:none">Volver al inicio</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// GAME ENGINE — Faithful port of iOS GameViewModel
+// ══════════════════════════════════════════════════════════════
+
+const WORDS = [
+  "elefante","jirafa","pulpo","tiburón","mariposa","pingüino","cocodrilo","águila","tortuga","delfín",
+  "cangrejo","camaleón","rinoceronte","flamenco","murciélago",
+  "guitarra","telescopio","bicicleta","paraguas","reloj","cámara","espada","corona","llave","martillo",
+  "micrófono","tijeras","lámpara","sartén","mochila",
+  "pizza","helado","hamburguesa","sushi","taco","pastel","banana","sandía","chocolate","donut",
+  "castillo","volcán","isla","pirámide","faro","cohete","avión","tren","barco","submarino",
+  "arcoíris","fantasma","robot","sirena","pirata","dragón","unicornio","alien","momia","hada",
+  "astronauta","ninja","payaso","mago","superhéroe"
+];
+
+const WRONG_WORDS = ["casa","perro","sol","agua","fuego","luna","nube","gato","flor","río","árbol","montaña","estrella","libro","mesa","silla","zapato","pelota","ventana","puerta"];
+
+const PALETTE = [
+  "#1e1e2e","#ffffff","#D63031","#E17055","#FDCB6E",
+  "#00B894","#00CEC9","#0984E3","#6C5CE7","#FD79A8",
+  "#636E72","#81592A"
+];
+
+const BOT_NAMES = ["Luna","Max","Sofía"];
+const ROUND_DURATION = 80;
+const MAX_CHAT = 6;
+
+// ── State ───────────────────────────────
+let playerName = "";
+let players = []; // {name, totalScore, roundScore, isDrawing, hasGuessed}
+let phase = "lobby"; // lobby | roundIntro | drawing | roundResults | gameOver
+let roundNumber = 0;
+let currentWord = "";
+let usedWords = new Set();
+let timeRemaining = ROUND_DURATION;
+let timerInterval = null;
+let revealedIndices = new Set();
+let roundGuesses = []; // {name, rank, points}
+let chatMessages = [];
+let drawerPoints = 0;
+let botTimeouts = [];
+let countdownInterval = null;
+
+// Drawing
+let canvas, ctx;
+let isDrawing = false;
+let currentColor = PALETTE[0];
+let lineWidth = 6;
+let toolMode = "pen"; // pen | marker | eraser
+let undoStack = [];
+
+// ── DOM refs ────────────────────────────
+const $ = id => document.getElementById(id);
+
+// ── Helpers ─────────────────────────────
+function normalize(s) {
+  return s.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function randomWord() {
+  const avail = WORDS.filter(w => !usedWords.has(w));
+  const w = avail.length ? avail[Math.floor(Math.random() * avail.length)] : WORDS[Math.floor(Math.random() * WORDS.length)];
+  usedWords.add(w);
+  return w;
+}
+function pointsForRank(rank, totalGuessers) {
+  const base = 100;
+  const dec = Math.max(10, Math.floor(base / Math.max(totalGuessers, 1)));
+  return Math.max(10, base - (rank - 1) * dec);
+}
+function drawerPointsCalc(guessedCount, totalGuessers) {
+  if (totalGuessers <= 0) return 0;
+  return Math.floor((guessedCount / totalGuessers) * 80);
+}
+
+// ══════════════════════════════════════════
+// SCREENS
+// ══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => {
+    s.classList.remove("active");
+    s.classList.add("hidden");
+  });
+  $(id).classList.remove("hidden");
+  $(id).classList.add("active");
+}
+
+// ══════════════════════════════════════════
+// LOBBY
+// ══════════════════════════════════════════
+function initLobby() {
+  const input = $("name-input");
+  const btn = $("start-btn");
+  
+  input.value = playerName || "";
+  
+  function updatePlayers() {
+    playerName = input.value.trim();
+    btn.disabled = !playerName;
+    const list = $("players-list");
+    const names = playerName ? [playerName, ...BOT_NAMES] : BOT_NAMES;
+    list.innerHTML = names.map((n, i) =>
+      `<div class="player-chip ${i === 0 && playerName ? 'you' : ''}">${i === 0 && playerName ? '👤 ' : '🤖 '}${n}</div>`
+    ).join("");
+  }
+  
+  input.addEventListener("input", updatePlayers);
+  input.addEventListener("keydown", e => { if (e.key === "Enter" && playerName) startGame(); });
+  btn.onclick = startGame;
+  $("play-again").onclick = () => { resetGame(); showScreen("lobby"); initLobby(); };
+  
+  updatePlayers();
+}
+
+// ══════════════════════════════════════════
+// GAME FLOW
+// ══════════════════════════════════════════
+function resetGame() {
+  clearInterval(timerInterval);
+  clearInterval(countdownInterval);
+  botTimeouts.forEach(t => clearTimeout(t));
+  botTimeouts = [];
+  roundNumber = 0;
+  usedWords = new Set();
+  players = [];
+  roundGuesses = [];
+  chatMessages = [];
+  revealedIndices = new Set();
+  phase = "lobby";
+}
+
+function startGame() {
+  players = [
+    { name: playerName, totalScore: 0, roundScore: 0, isDrawing: false, hasGuessed: false },
+    ...BOT_NAMES.map(n => ({ name: n, totalScore: 0, roundScore: 0, isDrawing: false, hasGuessed: false }))
+  ];
+  roundNumber = 0;
+  usedWords = new Set();
+  nextRound();
+}
+
+function nextRound() {
+  roundNumber++;
+  if (roundNumber > players.length) { endGame(); return; }
+
+  // Clear
+  roundGuesses = [];
+  chatMessages = [];
+  revealedIndices = new Set();
+  drawerPoints = 0;
+  botTimeouts.forEach(t => clearTimeout(t));
+  botTimeouts = [];
+
+  // Assign drawer (rotative)
+  const drawerIdx = roundNumber - 1;
+  players.forEach((p, i) => {
+    p.isDrawing = (i === drawerIdx);
+    p.hasGuessed = false;
+    p.roundScore = 0;
+  });
+
+  currentWord = randomWord();
+  showRoundIntro();
+}
+
+function showRoundIntro() {
+  phase = "roundIntro";
+  showScreen("round-intro");
+  
+  const drawer = players.find(p => p.isDrawing);
+  $("intro-round").textContent = `RONDA ${roundNumber} DE ${players.length}`;
+  
+  const isPlayer = drawer.name === playerName;
+  $("intro-drawer").textContent = isPlayer ? "¡Te toca dibujar!" : `${drawer.name} dibuja`;
+  
+  if (isPlayer) {
+    $("intro-word-wrap").style.display = "block";
+    $("intro-word").textContent = currentWord;
+  } else {
+    $("intro-word-wrap").style.display = "block";
+    $("intro-word-wrap").innerHTML = `<div class="word-label">¡Preparate para adivinar!</div>`;
+  }
+
+  setTimeout(() => {
+    phase = "drawing";
+    showDrawingPhase();
+  }, 2500);
+}
+
+// ══════════════════════════════════════════
+// DRAWING PHASE
+// ══════════════════════════════════════════
+function showDrawingPhase() {
+  showScreen("drawing-phase");
+  
+  const isPlayer = players.find(p => p.isDrawing)?.name === playerName;
+  
+  // Setup canvas
+  setupCanvas();
+  clearCanvas();
+  
+  // UI
+  $("game-word").textContent = isPlayer ? currentWord : buildHint();
+  $("round-info").textContent = `Ronda ${roundNumber}/${players.length}`;
+  $("guessed-strip").style.display = "none";
+  $("guessed-strip").innerHTML = "";
+  $("chat-overlay").innerHTML = "";
+  $("celebration").style.display = "none";
+  
+  // Toolbar visibility
+  $("toolbar").style.display = isPlayer ? "flex" : "none";
+  
+  // If player draws, canvas is interactive; if bot draws, it's view-only
+  canvas.style.cursor = isPlayer ? "crosshair" : "default";
+  canvas.style.pointerEvents = isPlayer ? "auto" : "none";
+
+  // Start timer
+  startTimer();
+
+  // Bot behavior
+  if (isPlayer) {
+    simulateBotGuesses();
+  } else {
+    simulateBotDrawing();
+    showGuessInput();
+  }
+}
+
+function buildHint() {
+  return Array.from(currentWord).map((c, i) => {
+    if (c === " ") return "  ";
+    return revealedIndices.has(i) ? c : "_";
+  }).join(" ");
+}
+
+function updateHintDisplay() {
+  const drawer = players.find(p => p.isDrawing);
+  if (drawer && drawer.name !== playerName) {
+    $("game-word").textContent = buildHint();
+  }
+}
+
+// ── Timer ────────────────────────────────
+function startTimer() {
+  timeRemaining = ROUND_DURATION;
+  updateTimerUI();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (timeRemaining > 0) {
+      timeRemaining--;
+      updateTimerUI();
+      const elapsed = ROUND_DURATION - timeRemaining;
+      if (elapsed > 0 && elapsed % 10 === 0) revealNextLetter();
+    } else {
+      endRound();
+    }
+  }, 1000);
+}
+
+function updateTimerUI() {
+  $("timer-val").textContent = `${timeRemaining}s`;
+  const badge = $("timer-badge");
+  badge.className = timeRemaining <= 15 ? "timer-badge danger" : "timer-badge normal";
+}
+
+function revealNextLetter() {
+  const chars = Array.from(currentWord);
+  const candidates = chars.map((c, i) => i).filter(i => !revealedIndices.has(i) && chars[i] !== " ");
+  if (candidates.length) {
+    revealedIndices.add(candidates[Math.floor(Math.random() * candidates.length)]);
+    updateHintDisplay();
+  }
+}
+
+// ── Bot guesses (when player draws) ─────
+function simulateBotGuesses() {
+  const bots = players.filter(p => !p.isDrawing);
+  bots.forEach(bot => {
+    // Wrong guesses
+    const wrongCount = 1 + Math.floor(Math.random() * 3);
+    for (let w = 0; w < wrongCount; w++) {
+      const delay = 3000 + Math.random() * 15000 + w * 4000;
+      const t = setTimeout(() => {
+        if (phase !== "drawing") return;
+        const wrong = WRONG_WORDS[Math.floor(Math.random() * WRONG_WORDS.length)];
+        addChatMessage(bot.name, wrong, false);
+      }, delay);
+      botTimeouts.push(t);
+    }
+
+    // Correct guess
+    const correctDelay = 8000 + Math.random() * (ROUND_DURATION * 1000 - 18000);
+    const t = setTimeout(() => {
+      if (phase !== "drawing" || bot.hasGuessed) return;
+      botGuessCorrect(bot);
+    }, correctDelay);
+    botTimeouts.push(t);
+  });
+}
+
+function botGuessCorrect(bot) {
+  const idx = players.findIndex(p => p.name === bot.name);
+  if (idx < 0 || players[idx].hasGuessed) return;
+  
+  players[idx].hasGuessed = true;
+  const rank = roundGuesses.length + 1;
+  const totalGuessers = players.filter(p => !p.isDrawing).length;
+  const pts = pointsForRank(rank, totalGuessers);
+  
+  players[idx].roundScore = pts;
+  players[idx].totalScore += pts;
+  
+  roundGuesses.push({ name: bot.name, rank, points: pts });
+  addChatMessage(bot.name, "¡Adivinó! 🎉", true);
+  updateGuessedStrip();
+  
+  // Check if all guessed
+  if (players.filter(p => !p.isDrawing).every(p => p.hasGuessed)) {
+    setTimeout(() => endRound(), 800);
+  }
+}
+
+// ── Bot drawing (when bot draws) ─────────
+function simulateBotDrawing() {
+  // Simple procedural "drawing" - draw random shapes progressively
+  const drawCtx = ctx;
+  const w = canvas.width, h = canvas.height;
+  const colors = ["#1e1e2e", "#D63031", "#0984E3", "#00B894", "#E17055"];
+  let step = 0;
+  
+  const drawInterval = setInterval(() => {
+    if (phase !== "drawing") { clearInterval(drawInterval); return; }
+    step++;
+    drawCtx.strokeStyle = colors[step % colors.length];
+    drawCtx.lineWidth = 3 + Math.random() * 4;
+    drawCtx.lineCap = "round";
+    drawCtx.lineJoin = "round";
+    drawCtx.beginPath();
+    
+    const cx = w / 2 + (Math.random() - 0.5) * w * 0.6;
+    const cy = h / 2 + (Math.random() - 0.5) * h * 0.5;
+    const r = 15 + Math.random() * 40;
+    
+    if (step % 3 === 0) {
+      // Circle-ish
+      drawCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    } else if (step % 3 === 1) {
+      // Line
+      drawCtx.moveTo(cx - r, cy - r * 0.5);
+      drawCtx.lineTo(cx + r, cy + r * 0.5);
+    } else {
+      // Squiggle
+      drawCtx.moveTo(cx - r, cy);
+      drawCtx.quadraticCurveTo(cx, cy - r, cx + r, cy);
+      drawCtx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.5, cx, cy + r * 0.3);
+    }
+    drawCtx.stroke();
+    
+    if (step > 25) clearInterval(drawInterval);
+  }, 1200);
+  
+  botTimeouts.push(drawInterval);
+}
+
+function showGuessInput() {
+  // Replace toolbar with a guess input
+  const toolbar = $("toolbar");
+  toolbar.style.display = "flex";
+  toolbar.innerHTML = `
+    <input type="text" id="guess-input" placeholder="Escribí tu respuesta..." 
+      style="flex:1;font-family:var(--mono);font-size:14px;color:var(--ink);background:transparent;
+      border:none;border-bottom:2px solid var(--ink-t);padding:8px 4px;outline:none">
+    <button class="btn btn-primary" id="guess-btn" style="padding:8px 16px;font-size:13px">Enviar</button>
+  `;
+  
+  const input = $("guess-input");
+  const btn = $("guess-btn");
+  
+  const submit = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    
+    if (normalize(text) === normalize(currentWord)) {
+      // Player guessed correctly!
+      const me = players.find(p => p.name === playerName);
+      if (me) {
+        me.hasGuessed = true;
+        const rank = roundGuesses.length + 1;
+        const totalGuessers = players.filter(p => !p.isDrawing).length;
+        const pts = pointsForRank(rank, totalGuessers);
+        me.roundScore = pts;
+        me.totalScore += pts;
+        roundGuesses.push({ name: playerName, rank, points: pts });
+        addChatMessage(playerName, "¡Adivinó! 🎉", true);
+        updateGuessedStrip();
+        showPlayerCelebration(pts);
+        
+        // Disable input
+        input.disabled = true;
+        btn.disabled = true;
+        input.placeholder = "¡Acertaste! Esperando...";
+      }
+    } else {
+      addChatMessage(playerName, text, false);
+    }
+  };
+  
+  btn.onclick = submit;
+  input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+  input.focus();
+}
+
+function showPlayerCelebration(pts) {
+  const celeb = $("celebration");
+  celeb.style.display = "flex";
+  $("celeb-pts").textContent = `+${pts} pts`;
+  celeb.querySelector(".msg").textContent = "¡Acertaste!";
+  setTimeout(() => { celeb.style.display = "none"; }, 2800);
+}
+
+// ── Chat ─────────────────────────────────
+function addChatMessage(name, text, isCorrect) {
+  chatMessages.push({ name, text, isCorrect });
+  if (chatMessages.length > MAX_CHAT) chatMessages.shift();
+  renderChat();
+}
+
+function renderChat() {
+  const overlay = $("chat-overlay");
+  overlay.innerHTML = chatMessages.map(m =>
+    `<div class="chat-msg ${m.isCorrect ? 'correct' : ''}">
+      <span class="name">${m.name}:</span>${m.isCorrect ? m.text : m.text}
+    </div>`
+  ).join("");
+  overlay.scrollTop = overlay.scrollHeight;
+}
+
+function updateGuessedStrip() {
+  const strip = $("guessed-strip");
+  if (roundGuesses.length === 0) { strip.style.display = "none"; return; }
+  strip.style.display = "flex";
+  strip.innerHTML = roundGuesses.map(g =>
+    `<div class="guessed-chip">${rankEmoji(g.rank)} ${g.name} <span class="badge badge-green" style="margin-left:2px">+${g.points}</span></div>`
+  ).join("");
+}
+
+function rankEmoji(r) { return r === 1 ? "🥇" : r === 2 ? "🥈" : r === 3 ? "🥉" : `${r}°`; }
+
+// ── End Round ────────────────────────────
+function endRound() {
+  if (phase !== "drawing") return;
+  clearInterval(timerInterval);
+  botTimeouts.forEach(t => { clearTimeout(t); clearInterval(t); });
+  botTimeouts = [];
+  
+  const totalGuessers = players.filter(p => !p.isDrawing).length;
+  drawerPoints = drawerPointsCalc(roundGuesses.length, totalGuessers);
+  
+  const drawerIdx = players.findIndex(p => p.isDrawing);
+  if (drawerIdx >= 0) {
+    players[drawerIdx].roundScore = drawerPoints;
+    players[drawerIdx].totalScore += drawerPoints;
+  }
+  
+  phase = "roundResults";
+  showRoundResults();
+}
+
+// ══════════════════════════════════════════
+// ROUND RESULTS
+// ══════════════════════════════════════════
+function showRoundResults() {
+  showScreen("round-results");
+  
+  $("results-word").textContent = `La palabra era: ${currentWord}`;
+  
+  const list = $("results-list");
+  if (roundGuesses.length === 0) {
+    list.innerHTML = `<p style="color:var(--ink-s);font-size:13px;text-align:center;padding:12px">Nadie adivinó 😢</p>`;
+  } else {
+    list.innerHTML = roundGuesses.map(g =>
+      `<div class="result-row">
+        <div class="result-rank">${rankEmoji(g.rank)}</div>
+        <div class="result-name">${g.name}</div>
+        <div class="result-pts badge badge-green">+${g.points}</div>
+      </div>`
+    ).join("");
+  }
+  
+  const drawer = players.find(p => p.isDrawing);
+  $("drawer-pts").textContent = `${drawer ? drawer.name : "Dibujante"} ganó +${drawerPoints} pts por dibujar`;
+  
+  const isLast = roundNumber >= players.length;
+  $("cd-label").textContent = isLast ? "Ver resultados" : "Siguiente ronda";
+  
+  // Countdown
+  let cd = 5;
+  const circle = $("cd-circle");
+  const numEl = $("cd-num");
+  const circum = 175.93;
+  
+  numEl.textContent = cd;
+  circle.style.strokeDashoffset = "0";
+  
+  clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    cd--;
+    numEl.textContent = cd;
+    circle.style.strokeDashoffset = `${circum * (1 - cd / 5)}`;
+    circle.style.transition = "stroke-dashoffset 0.9s linear";
+    if (cd <= 0) {
+      clearInterval(countdownInterval);
+      if (isLast) endGame();
+      else nextRound();
+    }
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// GAME OVER
+// ══════════════════════════════════════════
+function endGame() {
+  clearInterval(timerInterval);
+  clearInterval(countdownInterval);
+  botTimeouts.forEach(t => { clearTimeout(t); clearInterval(t); });
+  phase = "gameOver";
+  showScreen("game-over");
+  
+  const sorted = [...players].sort((a, b) => b.totalScore - a.totalScore);
+  const rankClasses = ["gold", "silver", "bronze"];
+  const medals = ["🥇", "🥈", "🥉"];
+  
+  $("final-rankings").innerHTML = sorted.map((p, i) =>
+    `<div class="final-row ${rankClasses[i] || 'normal'}">
+      <div class="final-medal">${medals[i] || `${i + 1}°`}</div>
+      <div class="final-name">${p.name}${p.name === playerName ? " (vos)" : ""}</div>
+      <div class="final-score">${p.totalScore} pts</div>
+    </div>`
+  ).join("");
+}
+
+// ══════════════════════════════════════════
+// CANVAS / DRAWING
+// ══════════════════════════════════════════
+function setupCanvas() {
+  canvas = $("game-canvas");
+  ctx = canvas.getContext("2d");
+  resizeCanvas();
+}
+
+function resizeCanvas() {
+  const area = canvas.parentElement;
+  const saved = ctx.getImageData(0, 0, canvas.width || 1, canvas.height || 1);
+  canvas.width = area.clientWidth;
+  canvas.height = area.clientHeight;
+  if (saved.width > 1) ctx.putImageData(saved, 0, 0);
+}
+
+function clearCanvas() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  undoStack = [];
+}
+
+function saveUndo() {
+  undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  if (undoStack.length > 30) undoStack.shift();
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+function startDraw(e) {
+  if (phase !== "drawing") return;
+  isDrawing = true;
+  saveUndo();
+  const p = getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  // Draw a dot for single clicks
+  ctx.lineTo(p.x + 0.1, p.y + 0.1);
+  applyTool();
+  ctx.stroke();
+}
+
+function moveDraw(e) {
+  if (!isDrawing || phase !== "drawing") return;
+  const p = getPos(e);
+  ctx.lineTo(p.x, p.y);
+  applyTool();
+  ctx.stroke();
+}
+
+function endDraw() { isDrawing = false; }
+
+function applyTool() {
+  if (toolMode === "eraser") {
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.lineWidth = lineWidth * 3;
+  } else {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = lineWidth;
+    ctx.globalAlpha = toolMode === "marker" ? 0.6 : 1.0;
+  }
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+}
+
+// Canvas events
+function initCanvasEvents() {
+  const c = $("game-canvas");
+  c.addEventListener("mousedown", e => { startDraw(e); });
+  c.addEventListener("mousemove", e => { moveDraw(e); });
+  c.addEventListener("mouseup", endDraw);
+  c.addEventListener("mouseleave", endDraw);
+  c.addEventListener("touchstart", e => { e.preventDefault(); startDraw(e); }, { passive: false });
+  c.addEventListener("touchmove", e => { e.preventDefault(); moveDraw(e); }, { passive: false });
+  c.addEventListener("touchend", endDraw);
+}
+
+// Toolbar events
+function initToolbar() {
+  // Tools
+  document.querySelectorAll(".tool-btn[data-tool]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tool-btn[data-tool]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      toolMode = btn.dataset.tool;
+    });
+  });
+  
+  // Colors
+  const palette = $("color-palette");
+  palette.innerHTML = PALETTE.map((c, i) =>
+    `<div class="color-dot ${i === 0 ? 'active' : ''}" data-color="${c}" 
+      style="background:${c};${c === '#ffffff' ? 'border:1px solid var(--dash-b)' : ''}"></div>`
+  ).join("");
+  
+  palette.addEventListener("click", e => {
+    const dot = e.target.closest(".color-dot");
+    if (!dot) return;
+    palette.querySelectorAll(".color-dot").forEach(d => d.classList.remove("active"));
+    dot.classList.add("active");
+    currentColor = dot.dataset.color;
+    if (toolMode === "eraser") {
+      toolMode = "pen";
+      document.querySelectorAll(".tool-btn[data-tool]").forEach(b => b.classList.remove("active"));
+      document.querySelector('.tool-btn[data-tool="pen"]').classList.add("active");
+    }
+  });
+  
+  // Size
+  const slider = $("size-slider");
+  slider.addEventListener("input", () => {
+    lineWidth = parseInt(slider.value);
+    $("size-val").textContent = lineWidth;
+  });
+  
+  // Clear
+  $("game-clear").addEventListener("click", clearCanvas);
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener("resize", () => { if (canvas) resizeCanvas(); });
+
+window.addEventListener("DOMContentLoaded", () => {
+  initCanvasEvents();
+  initToolbar();
+  initLobby();
+});
+</script>
+</body>
+</html>

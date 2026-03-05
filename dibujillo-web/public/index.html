@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dibujillo — Dibujá, Adiviná, Ganá!</title>
+<meta name="description" content="Dibujillo es el juego de dibujar y adivinar con amigos. Disponible en iOS y Android.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --paper: #f7f7ed;
+  --paper-dark: #212119;
+  --rule-line: rgba(140, 170, 200, 0.35);
+  --margin-line: rgba(220, 60, 60, 0.22);
+  --ink: #1e1e2e;
+  --ink-secondary: rgba(30, 30, 46, 0.65);
+  --ink-tertiary: rgba(30, 30, 46, 0.22);
+  --dashed-border: rgba(82, 82, 82, 0.30);
+  --highlight: rgba(255, 242, 100, 0.72);
+  --accent-blue: #2e61d1;
+  --accent-red: #cc2424;
+  --accent-green: #238f48;
+  --pencil-gray: #707070;
+  --line-spacing: 28px;
+  --dash: 5px 4px;
+  --border-w: 1.5px;
+  --radius: 12px;
+  --font-mono: 'Space Mono', monospace;
+  --font-hand: 'Caveat', cursive;
+  --font-heading: 'Nunito', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: var(--paper);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── Notebook Background ──────────────────────────── */
+.notebook-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(var(--line-spacing) - 1px),
+      var(--rule-line) calc(var(--line-spacing) - 1px),
+      var(--rule-line) var(--line-spacing)
+    );
+  background-position: 0 14px;
+}
+
+.notebook-bg::before {
+  content: '';
+  position: fixed;
+  top: 0; bottom: 0;
+  left: 48px;
+  width: 1.5px;
+  background: var(--margin-line);
+}
+
+@media (min-width: 768px) {
+  .notebook-bg::before { left: calc(50% - 420px); }
+}
+
+/* ── Utility ──────────────────────────────────────── */
+.container {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.sketch-card {
+  background: var(--paper);
+  border: var(--border-w) dashed var(--dashed-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  position: relative;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
+}
+
+.sketch-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(var(--line-spacing) - 1px),
+      var(--rule-line) calc(var(--line-spacing) - 1px),
+      var(--rule-line) var(--line-spacing)
+    );
+  background-position: 0 10px;
+  opacity: 0.5;
+}
+
+.highlight {
+  position: relative;
+  display: inline;
+}
+.highlight::after {
+  content: '';
+  position: absolute;
+  left: -4px; right: -4px;
+  bottom: 2px;
+  height: 45%;
+  background: var(--highlight);
+  z-index: -1;
+  transform: rotate(-0.5deg);
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 4px 12px;
+  border-radius: 50px;
+  border: 1.2px dashed;
+}
+.badge-blue  { color: var(--accent-blue); border-color: rgba(46,97,209,0.4); background: rgba(46,97,209,0.08); }
+.badge-red   { color: var(--accent-red);  border-color: rgba(204,36,36,0.4);  background: rgba(204,36,36,0.08); }
+.badge-green { color: var(--accent-green); border-color: rgba(35,143,72,0.4); background: rgba(35,143,72,0.08); }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.section-label .num {
+  color: var(--margin-line);
+  opacity: 1;
+  font-weight: 700;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  border-top: 1px dashed var(--dashed-border);
+}
+
+.dashed-divider {
+  border: none;
+  border-top: 1.5px dashed var(--dashed-border);
+  margin: 48px 0;
+}
+
+/* ── Animations ───────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+@keyframes pencil-draw {
+  0%   { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes scribble-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+.anim-float { animation: float 4s ease-in-out infinite; }
+.anim-wiggle { animation: wiggle 2s ease-in-out infinite; }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── HERO ─────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 80px 24px 60px;
+  position: relative;
+}
+
+.hero-mascot {
+  font-size: 100px;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.1));
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-family: var(--font-hand);
+  font-size: clamp(56px, 10vw, 96px);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.hero-title .underline-svg {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110%;
+  height: 20px;
+}
+
+.hero-title .underline-svg path {
+  fill: none;
+  stroke: var(--accent-red);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: pencil-draw 1.5s ease forwards 0.8s;
+}
+
+.hero-subtitle {
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 2.5vw, 18px);
+  color: var(--ink-secondary);
+  margin-top: 20px;
+  margin-bottom: 40px;
+}
+
+.hero-badges {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 36px;
+}
+
+/* ── CTA Buttons ──────────────────────────────────── */
+.cta-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.25s ease;
+  border: var(--border-w) dashed transparent;
+  position: relative;
+}
+
+.btn-store.primary {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+}
+.btn-store.primary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.25);
+}
+
+.btn-store.secondary {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--dashed-border);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
+}
+.btn-store.secondary:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.12);
+}
+
+.btn-store svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+/* ── Play Button ──────────────────────────────────── */
+.btn-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 56px;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.25);
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.btn-play::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(var(--line-spacing) - 1px),
+      rgba(255,255,255,0.06) calc(var(--line-spacing) - 1px),
+      rgba(255,255,255,0.06) var(--line-spacing)
+    );
+  pointer-events: none;
+}
+.btn-play:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0 rgba(0,0,0,0.3);
+}
+.btn-play:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+}
+.btn-play .play-icon {
+  font-size: 26px;
+}
+
+/* ── Scroll indicator ─────────────────────────────── */
+.scroll-hint {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-tertiary);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: float 3s ease-in-out infinite;
+}
+
+.scroll-hint svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--ink-tertiary);
+}
+
+/* ── Features Section ─────────────────────────────── */
+.features {
+  padding: 80px 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+  margin-top: 12px;
+}
+
+.feature-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card .emoji-icon {
+  font-size: 40px;
+  margin-bottom: 14px;
+  display: block;
+  animation: wiggle 3s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+.feature-card h3 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.feature-card p {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  line-height: 1.7;
+}
+
+/* ── How to Play ──────────────────────────────────── */
+.how-to-play {
+  padding: 80px 0;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-top: 12px;
+}
+
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
+  border: var(--border-w) dashed var(--dashed-border);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
+  position: relative;
+}
+
+.step-number::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(var(--line-spacing) - 1px),
+      var(--rule-line) calc(var(--line-spacing) - 1px),
+      var(--rule-line) var(--line-spacing)
+    );
+  opacity: 0.4;
+}
+
+.step-content h3 {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.step-content p {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  line-height: 1.7;
+}
+
+/* ── Interactive Demo Canvas ──────────────────────── */
+.demo-section {
+  padding: 80px 0;
+}
+
+.demo-canvas-wrap {
+  position: relative;
+  border: var(--border-w) dashed var(--dashed-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.08);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.demo-canvas-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 340px;
+}
+
+.demo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px dashed var(--dashed-border);
+  background: var(--paper);
+  flex-wrap: wrap;
+}
+
+.demo-toolbar .color-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.demo-toolbar .color-dot:hover { transform: scale(1.2); }
+.demo-toolbar .color-dot.active { border-color: var(--ink); transform: scale(1.15); }
+
+.demo-toolbar .clear-btn {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  background: none;
+  border: 1.2px dashed var(--accent-red);
+  border-radius: 6px;
+  color: var(--accent-red);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.demo-toolbar .clear-btn:hover {
+  background: rgba(204,36,36,0.06);
+}
+
+.demo-prompt {
+  text-align: center;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-tertiary);
+  border-top: 1px dashed var(--dashed-border);
+  background: var(--paper);
+}
+
+.demo-prompt strong {
+  color: var(--ink);
+}
+
+/* ── Typing word animation ────────────────────────── */
+.typing-word {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--accent-blue);
+  display: inline-block;
+  min-width: 100px;
+}
+
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--ink);
+  margin-left: 2px;
+  animation: blink-cursor 0.8s steps(1) infinite;
+  vertical-align: text-bottom;
+}
+
+/* ── Final CTA ────────────────────────────────────── */
+.final-cta {
+  padding: 100px 0 80px;
+  text-align: center;
+}
+
+.final-cta h2 {
+  font-family: var(--font-heading);
+  font-size: clamp(32px, 6vw, 48px);
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.final-cta p {
+  font-size: 14px;
+  color: var(--ink-secondary);
+  margin-bottom: 36px;
+  max-width: 460px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+footer {
+  padding: 32px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-tertiary);
+  border-top: 1px dashed var(--dashed-border);
+}
+
+footer a {
+  color: var(--ink-secondary);
+  text-decoration: none;
+}
+footer a:hover { text-decoration: underline; }
+
+/* ── Floating doodles ─────────────────────────────── */
+.doodle {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.12;
+  z-index: -1;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero { padding: 60px 20px 40px; min-height: 90vh; }
+  .hero-mascot { font-size: 72px; }
+  .cta-group { flex-direction: column; align-items: stretch; }
+  .btn-store { justify-content: center; }
+  .features-grid { grid-template-columns: 1fr; }
+  .step { flex-direction: column; align-items: center; text-align: center; }
+}
+
+/* ── Pencil scribble decorations ──────────────────── */
+.scribble-star {
+  display: inline-block;
+  position: relative;
+}
+.scribble-star::after {
+  content: '✦';
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 14px;
+  color: var(--accent-red);
+  animation: wiggle 2s ease-in-out infinite;
+}
+
+/* ── Smooth counter animation ─────────────────────── */
+.counter { display: inline-block; }
+
+/* ── Modal ────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(30, 30, 46, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-overlay.active .modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s ease;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--ink-secondary);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+.modal-close:hover {
+  background: rgba(0,0,0,0.06);
+  color: var(--ink);
+}
+
+.modal-body {
+  position: relative;
+  z-index: 1;
+}
+.modal-body h4 {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 800;
+  margin: 18px 0 6px;
+  color: var(--ink);
+}
+.modal-body p {
+  font-size: 13px;
+  color: var(--ink-secondary);
+  line-height: 1.75;
+  margin-bottom: 6px;
+}
+
+/* ── Form ─────────────────────────────────────────── */
+.form-group {
+  margin-bottom: 16px;
+}
+.form-group label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: none;
+  border-bottom: 2px solid var(--ink-tertiary);
+  padding: 10px 4px;
+  outline: none;
+  transition: border-color 0.25s;
+  resize: vertical;
+}
+.form-group input:focus,
+.form-group textarea:focus {
+  border-bottom-color: var(--accent-blue);
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--ink-tertiary);
+}
+
+.btn-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 28px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.2);
+  transition: all 0.25s;
+  margin-top: 8px;
+  width: 100%;
+  justify-content: center;
+}
+.btn-send:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(0,0,0,0.25);
+}
+</style>
+</head>
+<body>
+
+<!-- Notebook paper background -->
+<div class="notebook-bg" aria-hidden="true"></div>
+
+<!-- ══════════════════════════════════════════════════
+     HERO
+     ══════════════════════════════════════════════════ -->
+<section class="hero">
+  <!-- Floating doodles -->
+  <svg class="doodle anim-float" style="top:12%;left:8%;width:60px;" viewBox="0 0 60 60">
+    <circle cx="30" cy="30" r="22" fill="none" stroke="#cc2424" stroke-width="2" stroke-dasharray="4 3"/>
+  </svg>
+  <svg class="doodle anim-float" style="top:20%;right:10%;width:40px;animation-delay:1s;" viewBox="0 0 40 40">
+    <path d="M20 5 L23 15 L35 15 L25 22 L29 35 L20 27 L11 35 L15 22 L5 15 L17 15Z" fill="none" stroke="#2e61d1" stroke-width="1.5"/>
+  </svg>
+  <svg class="doodle" style="bottom:18%;left:5%;width:50px;animation:wiggle 5s ease-in-out infinite;" viewBox="0 0 50 50">
+    <rect x="8" y="8" width="34" height="34" rx="4" fill="none" stroke="#238f48" stroke-width="1.5" stroke-dasharray="5 3"/>
+  </svg>
+
+  <div class="hero-mascot" aria-label="Mascota de Dibujillo">🎨</div>
+
+  <h1 class="hero-title">
+    Dibujillo
+    <svg class="underline-svg" viewBox="0 0 300 14" preserveAspectRatio="none">
+      <path d="M5 10 Q75 2 150 9 Q225 16 295 7" />
+    </svg>
+  </h1>
+
+  <p class="hero-subtitle">
+    <span class="highlight">Dibujá</span>, adiviná y competí con amigos en tiempo real
+  </p>
+
+  <div class="hero-badges">
+    <span class="badge badge-blue">Multijugador</span>
+    <span class="badge badge-red">Tiempo real</span>
+    <span class="badge badge-green">Gratis</span>
+  </div>
+
+  <a href="game-online.html?mode=matchmaking" class="btn-play">
+    <span class="play-icon">🌐</span> Jugar Online
+  </a>
+
+  <div class="cta-group">
+    <a href="game-online.html" class="btn-store secondary" style="font-size:13px;font-weight:700">
+      👥 Jugar con amigos
+    </a>
+    <a href="game.html" class="btn-store secondary" style="font-size:12px">
+      🎮 Modo práctica (offline)
+    </a>
+    <a href="https://apps.apple.com/app/dibujillo" class="btn-store primary" id="ios-btn">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 16.56 2.93 11.3 4.7 7.72C5.57 5.94 7.36 4.86 9.28 4.84C10.56 4.81 11.78 5.72 12.57 5.72C13.36 5.72 14.85 4.62 16.42 4.8C17.09 4.83 18.92 5.08 20.11 6.81C20 6.88 17.72 8.21 17.75 11.04C17.78 14.39 20.63 15.53 20.66 15.54C20.63 15.63 20.18 17.17 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+      Descargar en App Store
+    </a>
+  </div>
+
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+      <path d="M12 5v14M5 12l7 7 7-7"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════
+     FEATURES
+     ══════════════════════════════════════════════════ -->
+<section class="features">
+  <div class="container">
+    <div class="section-label">
+      <span class="num">01</span> Características
+    </div>
+
+    <div class="features-grid">
+      <div class="sketch-card feature-card reveal" style="--delay: 0s;">
+        <span class="emoji-icon">✏️</span>
+        <h3>Dibujá en el canvas</h3>
+        <p>Herramientas de dibujo intuitivas: lápiz, marcador, borrador y una paleta de colores para dar vida a tus obras maestras.</p>
+      </div>
+
+      <div class="sketch-card feature-card reveal" style="--delay: 0.3s;">
+        <span class="emoji-icon">🧠</span>
+        <h3>Adiviná la palabra</h3>
+        <p>Mirá lo que dibuja tu rival y adiviná la palabra secreta antes que los demás. ¡El más rápido gana más puntos!</p>
+      </div>
+
+      <div class="sketch-card feature-card reveal" style="--delay: 0.6s;">
+        <span class="emoji-icon">🌐</span>
+        <h3>Online en tiempo real</h3>
+        <p>Creá salas privadas con código, o unite a partidas públicas con matchmaking automático. Todo sincronizado al instante.</p>
+      </div>
+
+      <div class="sketch-card feature-card reveal" style="--delay: 0.9s;">
+        <span class="emoji-icon">🏆</span>
+        <h3>Rankings y puntuación</h3>
+        <p>Sistema de puntos por velocidad: cuanto más rápido adivinás, más puntos ganás. ¡Competí por el primer puesto!</p>
+      </div>
+
+      <div class="sketch-card feature-card reveal" style="--delay: 1.2s;">
+        <span class="emoji-icon">💬</span>
+        <h3>Chat en vivo</h3>
+        <p>Chat flotante durante la partida. Mandá tus respuestas y mirá los intentos de los demás en tiempo real.</p>
+      </div>
+
+      <div class="sketch-card feature-card reveal" style="--delay: 1.5s;">
+        <span class="emoji-icon">🔒</span>
+        <h3>Salas privadas</h3>
+        <p>Creá tu sala con código y contraseña, invitá a tus amigos y jugá sin que nadie más se meta.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container"><hr class="dashed-divider"></div>
+
+<!-- ══════════════════════════════════════════════════
+     HOW TO PLAY
+     ══════════════════════════════════════════════════ -->
+<section class="how-to-play">
+  <div class="container">
+    <div class="section-label">
+      <span class="num">02</span> Cómo jugar
+    </div>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Ingresá tu nombre</h3>
+          <p>Elegí un apodo y entrá al juego. Sin cuentas, sin esperas, directo a la diversión.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Creá o unite a una sala</h3>
+          <p>Partida rápida con matchmaking, sala privada con código, o modo práctica solo contra bots.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>¡Dibujá o adiviná!</h3>
+          <p>Si te toca dibujar, hacelo lo mejor que puedas. Si te toca adivinar, escribí la palabra antes que nadie.</p>
+        </div>
+      </div>
+      <div class="step reveal">
+        <div class="step-number">4</div>
+        <div class="step-content">
+          <h3>Ganá puntos y subí al podio <span class="scribble-star"></span></h3>
+          <p>Más rápido adivinás, más puntos. El ranking final decide quién es el verdadero artista.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container"><hr class="dashed-divider"></div>
+
+<!-- ══════════════════════════════════════════════════
+     INTERACTIVE DEMO
+     ══════════════════════════════════════════════════ -->
+<section class="demo-section">
+  <div class="container">
+    <div class="section-label">
+      <span class="num">03</span> Probá ahora
+    </div>
+
+    <div class="reveal">
+      <div class="demo-canvas-wrap" id="demo-canvas-wrap">
+        <canvas id="demo-canvas"></canvas>
+        <div class="demo-toolbar" id="demo-toolbar">
+          <div class="color-dot active" data-color="#1e1e2e" style="background:#1e1e2e;"></div>
+          <div class="color-dot" data-color="#cc2424" style="background:#cc2424;"></div>
+          <div class="color-dot" data-color="#2e61d1" style="background:#2e61d1;"></div>
+          <div class="color-dot" data-color="#238f48" style="background:#238f48;"></div>
+          <div class="color-dot" data-color="#e8a020" style="background:#e8a020;"></div>
+          <div class="color-dot" data-color="#9b59b6" style="background:#9b59b6;"></div>
+          <button class="clear-btn" id="clear-canvas">Borrar</button>
+        </div>
+        <div class="demo-prompt">
+          Dibujá: <strong class="typing-word" id="typing-target"></strong><span class="typing-cursor"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container"><hr class="dashed-divider"></div>
+
+<!-- ══════════════════════════════════════════════════
+     FINAL CTA
+     ══════════════════════════════════════════════════ -->
+<section class="final-cta reveal">
+  <div class="container">
+    <h2>¿Listo para dibujar? <span class="scribble-star"></span></h2>
+    <p>Jugá desde el navegador o descargá la app y empezá a jugar con tus amigos ahora mismo.</p>
+    <a href="game-online.html?mode=matchmaking" class="btn-play" style="margin-bottom:16px">
+      <span class="play-icon">🌐</span> Jugar Online
+    </a>
+    <div class="cta-group">
+      <a href="game-online.html" class="btn-store secondary" style="font-size:13px;font-weight:700">
+        👥 Jugar con amigos
+      </a>
+      <a href="https://apps.apple.com/app/dibujillo" class="btn-store primary">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 16.56 2.93 11.3 4.7 7.72C5.57 5.94 7.36 4.86 9.28 4.84C10.56 4.81 11.78 5.72 12.57 5.72C13.36 5.72 14.85 4.62 16.42 4.8C17.09 4.83 18.92 5.08 20.11 6.81C20 6.88 17.72 8.21 17.75 11.04C17.78 14.39 20.63 15.53 20.66 15.54C20.63 15.63 20.18 17.17 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+        App Store
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>Dibujillo &copy; 2026 — Hecho con ✏️ y ❤️</p>
+    <p style="margin-top:6px;">
+      <a href="#" onclick="openModal('privacy-modal');return false;">Privacidad</a> · <a href="#" onclick="openModal('terms-modal');return false;">Términos</a> · <a href="#" onclick="openModal('contact-modal');return false;">Contacto</a>
+    </p>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════
+     MODALS
+     ══════════════════════════════════════════════════ -->
+
+<!-- Privacy Modal -->
+<div class="modal-overlay" id="privacy-modal" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="modal-card sketch-card">
+    <button class="modal-close" onclick="closeModal('privacy-modal')" aria-label="Cerrar">&times;</button>
+    <div class="section-label" style="margin-bottom:12px;">
+      <span class="num">🔒</span> Política de Privacidad
+    </div>
+    <div class="modal-body">
+      <p><strong>Última actualización:</strong> Marzo 2026</p>
+      <p>En Dibujillo valoramos y protegemos tu privacidad. Esta política describe cómo recopilamos, usamos y resguardamos tu información al utilizar nuestra aplicación.</p>
+      <h4>Información que recopilamos</h4>
+      <p>Dibujillo recopila únicamente la información necesaria para el funcionamiento del juego: el nombre de jugador que elegís al ingresar (no requiere cuenta ni registro), datos de partidas en tiempo real (dibujos, mensajes del chat y puntuaciones) que se utilizan exclusivamente durante la sesión de juego, e identificadores anónimos de dispositivo para mantener la sesión activa.</p>
+      <h4>Cómo usamos tu información</h4>
+      <p>La información recopilada se utiliza exclusivamente para permitir el funcionamiento del juego multijugador en tiempo real, sincronizar partidas entre jugadores y mejorar la experiencia de juego.</p>
+      <h4>Almacenamiento y seguridad</h4>
+      <p>Los datos de partidas se almacenan temporalmente en servidores de Firebase (Google Cloud) y se eliminan automáticamente al finalizar cada sesión. No almacenamos datos personales de forma permanente ni los compartimos con terceros.</p>
+      <h4>Servicios de terceros</h4>
+      <p>Dibujillo utiliza Firebase (Google) para la sincronización en tiempo real. Te recomendamos revisar la política de privacidad de Google para más información sobre cómo manejan los datos.</p>
+      <h4>Menores de edad</h4>
+      <p>Dibujillo es apto para todas las edades. No recopilamos conscientemente información personal de menores de 13 años más allá del nombre de jugador elegido.</p>
+      <h4>Contacto</h4>
+      <p>Si tenés preguntas sobre esta política, podés contactarnos a través de la sección de Contacto en esta página.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal-overlay" id="terms-modal" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="modal-card sketch-card">
+    <button class="modal-close" onclick="closeModal('terms-modal')" aria-label="Cerrar">&times;</button>
+    <div class="section-label" style="margin-bottom:12px;">
+      <span class="num">📋</span> Términos y Condiciones
+    </div>
+    <div class="modal-body">
+      <p><strong>Última actualización:</strong> Marzo 2026</p>
+      <p>Al usar Dibujillo, aceptás los siguientes términos y condiciones. Si no estás de acuerdo, te pedimos que no utilices la aplicación.</p>
+      <h4>Uso de la aplicación</h4>
+      <p>Dibujillo es un juego gratuito de dibujo y adivinanza multijugador. Al usarlo, te comprometés a utilizarlo de manera responsable, respetar a los demás jugadores y no enviar contenido ofensivo, inapropiado o que vulnere derechos de terceros.</p>
+      <h4>Conducta del usuario</h4>
+      <p>Los jugadores son responsables de los dibujos que realizan y los mensajes que envían durante las partidas. Nos reservamos el derecho de restringir el acceso a usuarios que incumplan estas normas de convivencia.</p>
+      <h4>Propiedad intelectual</h4>
+      <p>Dibujillo, su diseño, código y contenido son propiedad de sus creadores. Los dibujos realizados durante las partidas son creaciones temporales de los jugadores y no se almacenan de forma permanente.</p>
+      <h4>Disponibilidad del servicio</h4>
+      <p>Nos esforzamos por mantener el servicio disponible, pero no garantizamos que funcione de forma ininterrumpida. Podemos modificar, suspender o descontinuar funcionalidades sin previo aviso.</p>
+      <h4>Limitación de responsabilidad</h4>
+      <p>Dibujillo se proporciona "tal cual". No nos hacemos responsables por interrupciones del servicio, pérdida de datos de partidas o cualquier daño derivado del uso de la aplicación.</p>
+      <h4>Modificaciones</h4>
+      <p>Estos términos pueden actualizarse en cualquier momento. El uso continuado de la aplicación implica la aceptación de los términos vigentes.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal-overlay" id="contact-modal" onclick="if(event.target===this)closeModal(this.id)">
+  <div class="modal-card sketch-card">
+    <button class="modal-close" onclick="closeModal('contact-modal')" aria-label="Cerrar">&times;</button>
+    <div class="section-label" style="margin-bottom:12px;">
+      <span class="num">✉️</span> Contacto
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:20px;">¿Tenés alguna pregunta, sugerencia o encontraste un bug? ¡Escribinos!</p>
+      <div class="form-group">
+        <label for="contact-name">Tu nombre</label>
+        <input type="text" id="contact-name" placeholder="Tu nombre...">
+      </div>
+      <div class="form-group">
+        <label for="contact-email">Tu email</label>
+        <input type="email" id="contact-email" placeholder="tu@email.com">
+      </div>
+      <div class="form-group">
+        <label for="contact-subject">Asunto</label>
+        <input type="text" id="contact-subject" placeholder="¿Sobre qué querés hablar?">
+      </div>
+      <div class="form-group">
+        <label for="contact-message">Mensaje</label>
+        <textarea id="contact-message" rows="5" placeholder="Contanos..."></textarea>
+      </div>
+      <button class="btn-send" onclick="sendContactEmail()">
+        <span>Enviar mensaje</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     SCRIPTS
+     ══════════════════════════════════════════════════ -->
+<script>
+// ── Reveal on scroll ─────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── Drawing canvas ───────────────────────────────────
+const canvas = document.getElementById('demo-canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let currentColor = '#1e1e2e';
+
+function resizeCanvas() {
+  const wrap = document.getElementById('demo-canvas-wrap');
+  canvas.width = wrap.clientWidth;
+  canvas.height = 340;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches ? e.touches[0] : e;
+  return {
+    x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+    y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = currentColor; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); });
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = currentColor; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); }, { passive: false });
+canvas.addEventListener('touchend', () => drawing = false);
+
+document.querySelectorAll('.color-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+    currentColor = dot.dataset.color;
+  });
+});
+
+document.getElementById('clear-canvas').addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+// ── Typing word animation ────────────────────────────
+const words = ['sol', 'casa', 'gato', 'pizza', 'guitarra', 'cohete', 'estrella', 'mariposa', 'dinosaurio', 'helado'];
+const typingEl = document.getElementById('typing-target');
+let wordIdx = 0;
+
+function typeWord(word) {
+  let i = 0;
+  typingEl.textContent = '';
+  const typeInterval = setInterval(() => {
+    typingEl.textContent += word[i];
+    i++;
+    if (i >= word.length) {
+      clearInterval(typeInterval);
+      setTimeout(() => eraseWord(word), 2200);
+    }
+  }, 110);
+}
+
+function eraseWord(word) {
+  let i = word.length;
+  const eraseInterval = setInterval(() => {
+    i--;
+    typingEl.textContent = word.substring(0, i);
+    if (i <= 0) {
+      clearInterval(eraseInterval);
+      wordIdx = (wordIdx + 1) % words.length;
+      setTimeout(() => typeWord(words[wordIdx]), 400);
+    }
+  }, 60);
+}
+
+typeWord(words[0]);
+
+// ── Smooth scroll for scroll hint ────────────────────
+document.querySelector('.scroll-hint')?.addEventListener('click', () => {
+  document.querySelector('.features').scrollIntoView({ behavior: 'smooth' });
+});
+
+// ── Modal functions ──────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+      closeModal(m.id);
+    });
+  }
+});
+
+// ── Contact form → mailto ────────────────────────────
+function sendContactEmail() {
+  const name = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
+  const subject = document.getElementById('contact-subject').value.trim();
+  const message = document.getElementById('contact-message').value.trim();
+
+  if (!name || !email || !subject || !message) {
+    alert('Por favor completá todos los campos.');
+    return;
+  }
+
+  const body = `Nombre: ${name}%0AEmail: ${email}%0A%0A${encodeURIComponent(message)}`;
+  const mailto = `mailto:mail@mail.com?subject=${encodeURIComponent('[Dibujillo] ' + subject)}&body=${body}`;
+  window.location.href = mailto;
+}
+</script>
+
+</body>
+</html>
