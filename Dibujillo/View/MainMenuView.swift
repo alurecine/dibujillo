@@ -173,9 +173,10 @@ private struct SketchMenuCard: View {
                     Text(subtitle)
                         .font(SketchDraft.fontCaption(11))
                         .foregroundStyle(SketchDraft.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(nil)
                 }
-                
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 // Arrow — hand-drawn feel with dashed line
                 Image(systemName: "arrow.right")

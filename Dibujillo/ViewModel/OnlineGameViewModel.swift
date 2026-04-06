@@ -47,9 +47,15 @@ final class OnlineGameViewModel: ObservableObject {
     
     // Resultados finales congelados (persisten después de borrar la sala)
     @Published var finalScoreboard: [ScoreboardEntry] = []
-    
+
     // Chat (últimos 6 del room)
     @Published var visibleChat: [OnlineChatMessage] = []
+
+    // Abandono de sala durante partida
+    /// Nombre del último jugador que abandonó (se resetea en la View tras mostrar el toast)
+    @Published var playerLeft: String? = nil
+    /// true cuando solo queda 1 jugador en sala durante fase activa → muestra modal de salida
+    @Published var isAlonePlaying: Bool = false
     
     // MARK: - Cancellables
     private var roomCancellable: AnyCancellable?
@@ -136,6 +142,23 @@ final class OnlineGameViewModel: ObservableObject {
             return
         }
         
+        // MARK: Detectar abandono de jugadores durante la partida activa
+        if phase == .drawing || phase == .roundResults {
+            let oldCount = oldRoom?.players.count ?? 0
+            let newCount = room.players.count
+
+            if newCount < oldCount {
+                // Notificar quién se fue
+                if let leftPlayer = findLeftPlayer(oldRoom?.players, room.players) {
+                    playerLeft = leftPlayer.name
+                }
+                // Quedamos solos → activar modal de salida
+                if newCount == 1 {
+                    isAlonePlaying = true
+                }
+            }
+        }
+
         // Update visible chat (últimos 6)
         visibleChat = Array(room.chatMessages.suffix(6))
         
@@ -344,8 +367,20 @@ final class OnlineGameViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Abandono helpers
+
+    /// Devuelve el jugador que desapareció entre dos listas de jugadores.
+    private func findLeftPlayer(
+        _ oldPlayers: [OnlinePlayer]?,
+        _ newPlayers: [OnlinePlayer]
+    ) -> OnlinePlayer? {
+        guard let oldPlayers else { return nil }
+        let newIds = Set(newPlayers.map { $0.id })
+        return oldPlayers.first { !newIds.contains($0.id) }
+    }
+
     // MARK: - Leave
-    
+
     func leaveRoom() {
         drawingSync.stopListening()
         timerCancellable?.cancel()
