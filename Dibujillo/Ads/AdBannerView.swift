@@ -10,7 +10,6 @@ import SwiftUI
 import GoogleMobileAds
 
 // IDs de prueba de Google (para desarrollo)
-// Cuando subas a producción, reemplazás con tus IDs reales
 enum AdUnitID {
 #if DEBUG
     static let banner      = "ca-app-pub-3940256099942544/2934735716"

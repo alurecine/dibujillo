@@ -7,6 +7,8 @@
 <meta name="description" content="Dibujillo es el juego de dibujar y adivinar con amigos. Disponible en iOS y Android.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Caveat:wght@400;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6605920230162396" crossorigin="anonymous"></script>
 <style>
 /* ── Reset & Base ─────────────────────────────────── */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,6 +44,42 @@ body {
   background: var(--paper);
   overflow-x: hidden;
   line-height: 1.6;
+  padding-bottom: 70px;
+}
+
+/* ── Ad Banner ─────────────────────────────────── */
+#ad-banner {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 900;
+  background: var(--paper);
+  border-top: var(--border-w) dashed var(--dashed-border);
+  padding: 6px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+#ad-banner .ad-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+  margin-bottom: 3px;
+  align-self: flex-start;
+}
+#ad-banner-close {
+  position: absolute;
+  top: 5px; right: 10px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ink-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
 }
 
 /* ── Notebook Background ──────────────────────────── */
@@ -1245,6 +1283,19 @@ function sendContactEmail() {
   window.location.href = mailto;
 }
 </script>
+
+<!-- ── Ad Banner ─────────────────────────────────── -->
+<div id="ad-banner">
+  <span class="ad-label">Publicidad</span>
+  <button id="ad-banner-close" onclick="document.getElementById('ad-banner').style.display='none'" aria-label="Cerrar anuncio">×</button>
+  <ins class="adsbygoogle"
+    style="display:block;width:100%;max-width:728px"
+    data-ad-client="ca-pub-6605920230162396"
+    data-ad-slot="5796159951"
+    data-ad-format="horizontal"
+    data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
 
 </body>
 </html>

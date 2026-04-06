@@ -6,6 +6,8 @@
 <title>Dibujillo — Jugar Online</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Caveat:wght@400;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<!-- Google AdSense — reemplazá ca-pub-6605920230162396 con tu Publisher ID -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6605920230162396" crossorigin="anonymous"></script>
 
 <!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -195,6 +197,13 @@ body{font-family:var(--mono);color:var(--ink);background:var(--paper);user-selec
   .game-top{padding:6px 8px}
   .chat-overlay{max-width:170px}
 }
+
+/* ── Ad Interstitial ─────────────────── */
+#ad-interstitial{position:fixed;inset:0;z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(247,247,237,0.96);backdrop-filter:blur(8px)}
+#ad-interstitial .ad-inner{width:100%;max-width:380px;padding:24px;text-align:center}
+#ad-interstitial .ad-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-s);margin-bottom:8px;display:block;text-align:left}
+#ad-skip{font-family:var(--mono);font-size:13px;font-weight:700;margin-top:16px;padding:10px 28px;background:var(--ink);color:var(--paper);border:none;border-radius:8px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,0.2);transition:opacity 0.2s}
+#ad-skip:disabled{opacity:0.35;cursor:default}
 </style>
 </head>
 <body>
@@ -350,6 +359,21 @@ body{font-family:var(--mono);color:var(--ink);background:var(--paper);user-selec
       <button class="btn btn-primary" id="btn-go-menu">Volver al menú</button>
       <a href="index.html" class="btn btn-secondary" style="text-decoration:none">Ir al inicio</a>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════ AD INTERSTITIAL ═══════════ -->
+<div id="ad-interstitial">
+  <div class="ad-inner">
+    <span class="ad-label">Publicidad</span>
+    <ins class="adsbygoogle"
+      style="display:block;min-height:250px"
+      data-ad-client="ca-pub-6605920230162396"
+      data-ad-slot="7188152735"
+      data-ad-format="rectangle"
+      data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    <button id="ad-skip" disabled>Saltar en <span id="ad-skip-count">5</span>s</button>
   </div>
 </div>
 
@@ -1158,10 +1182,23 @@ function showRoundResults(room){
 // GAME OVER
 // ══════════════════════════════════════════════════════
 function showGameOver(){
-  showScreen("game-over");clearInterval(timerInterval);clearInterval(countdownInterval);stopDrawingSync();
+  clearInterval(timerInterval);clearInterval(countdownInterval);stopDrawingSync();
   const sorted=frozenScoreboard||(currentRoom?[...currentRoom.players].sort((a,b)=>b.totalScore-a.totalScore):[]);
   const rc=["gold","silver","bronze"];const md=["🥇","🥈","🥉"];
   $("final-rankings").innerHTML=sorted.map((p,i)=>`<div class="final-row ${rc[i]||"normal"}"><div class="final-medal">${md[i]||`${i+1}°`}</div><div class="final-name">${p.name}${p.id===myUID?" (vos)":""}</div><div class="final-score">${p.totalScore} pts</div></div>`).join("");
+  showInterstitial(()=>showScreen("game-over"));
+}
+
+function showInterstitial(onClose){
+  const el=$("ad-interstitial"),skipBtn=$("ad-skip");
+  el.style.display="flex";skipBtn.disabled=true;
+  let secs=5;skipBtn.innerHTML=`Saltar en <span id="ad-skip-count">${secs}</span>s`;
+  const iv=setInterval(()=>{
+    secs--;const sc=$("ad-skip-count");
+    if(secs<=0){clearInterval(iv);skipBtn.disabled=false;skipBtn.textContent="Saltar →";}
+    else if(sc)sc.textContent=secs;
+  },1000);
+  skipBtn.onclick=()=>{if(skipBtn.disabled)return;clearInterval(iv);el.style.display="none";onClose();};
 }
 
 // ══════════════════════════════════════════════════════

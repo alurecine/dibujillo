@@ -124,7 +124,7 @@ struct MainMenuView: View {
     // MARK: - Share
     
     private func shareAppLink() {
-        let message = "¡Jugá Dibujillo conmigo! 🎨✏️\nDescargalo acá: https://apps.apple.com/app/dibujillo/id_TU_APP"
+        let message = "¡Jugá Dibujillo conmigo! 🎨✏️\nDescargalo acá: https://apps.apple.com/ar/app/dibujillo/id6759869239"
         guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let root = scene.windows.first?.rootViewController else { return }
         let vc = UIActivityViewController(activityItems: [message], applicationActivities: nil)

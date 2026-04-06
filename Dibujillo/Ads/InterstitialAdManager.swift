@@ -16,6 +16,7 @@ final class InterstitialAdManager: NSObject, ObservableObject {
     static let shared = InterstitialAdManager()
     
     private var interstitial: InterstitialAd?
+    private var delegate: FullScreenDelegate?   // ← retiene el delegate
     @Published var isAdReady = false
     
     override private init() {
@@ -38,7 +39,6 @@ final class InterstitialAdManager: NSObject, ObservableObject {
         }
     }
     
-    /// Muestra el interstitial. Llama a `onDismiss` siempre (haya o no ad cargado)
     func showAd(onDismiss: @escaping () -> Void) {
         guard RemoteConfigService.shared.adsEnabled,
               let ad = interstitial,
@@ -48,12 +48,14 @@ final class InterstitialAdManager: NSObject, ObservableObject {
             return
         }
         
-        ad.fullScreenContentDelegate = FullScreenDelegate(onDismiss: {
+        delegate = FullScreenDelegate(onDismiss: { [weak self] in
             onDismiss()
-            self.isAdReady = false
-            self.loadAd()
+            self?.isAdReady = false
+            self?.delegate = nil   // ← limpia la referencia al terminar
+            self?.loadAd()
         })
         
+        ad.fullScreenContentDelegate = delegate
         ad.present(from: root)
     }
 }
