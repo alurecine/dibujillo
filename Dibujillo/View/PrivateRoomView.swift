@@ -14,6 +14,7 @@ struct PrivateRoomView: View {
     @State private var mode: Mode = .choose
     @State private var roomCode: String = ""
     @State private var password: String = ""
+    @State private var selectedRounds: Int = 1
     @State private var isLoading = false
     @State private var navigateToGame = false
     @State private var createdCode: String?
@@ -127,7 +128,29 @@ struct PrivateRoomView: View {
                 SecureField("Dejar vacío si no querés", text: $password)
                     .sketchTextField()
             }
-            
+
+            VStack(alignment: .leading, spacing: 8) {
+                SketchSectionHeader(title: "Seleccionar rondas", number: nil)
+                HStack(spacing: DSSpacing.md) {
+                    ForEach([1, 2, 4, 6], id: \.self) { rounds in
+                        Button {
+                            selectedRounds = rounds
+                        } label: {
+                            VStack(spacing: 2) {
+                                Text("\(rounds)")
+                                    .font(SketchDraft.fontBold(16))
+                                Text(rounds == 1 ? "ronda" : "rondas")
+                                    .font(SketchDraft.fontBody(11))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .sketchButton(style: selectedRounds == rounds ? .primary : .secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isLoading)
+                    }
+                }
+            }
+
             Button {
                 createRoom()
             } label: {
@@ -239,10 +262,43 @@ struct PrivateRoomView: View {
                 .sketchCard()
                 
                 if room.hostID == AuthService.shared.currentUID {
+                    VStack(alignment: .leading, spacing: DSSpacing.md) {
+                        SketchSectionHeader(title: "Rondas por jugador", number: nil)
+
+                        HStack(spacing: DSSpacing.sm) {
+                            ForEach([1, 2, 4, 6], id: \.self) { rounds in
+                                Button {
+                                    selectedRounds = rounds
+                                } label: {
+                                    VStack(spacing: DSSpacing.xs) {
+                                        Text("\(rounds)")
+                                            .font(SketchDraft.fontBold(16))
+                                        Text(rounds == 1 ? "ronda" : "rondas")
+                                            .font(SketchDraft.fontCaption(10))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, DSSpacing.sm)
+                                    .background(selectedRounds == rounds ? SketchDraft.inkPrimary.opacity(0.08) : Color.clear)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                                            .strokeBorder(
+                                                selectedRounds == rounds ? SketchDraft.inkPrimary.opacity(0.4) : SketchDraft.dashedBorder,
+                                                style: StrokeStyle(lineWidth: SketchDraft.borderWidth, dash: SketchDraft.dashPattern)
+                                            )
+                                    )
+                                    .cornerRadius(SketchDraft.cornerRadius)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .foregroundStyle(SketchDraft.inkPrimary)
+                    }
+                    .sketchCard()
+
                     VStack(spacing: 8) {
                         Button {
                             onlineVM.startObserving()
-                            onlineVM.hostStartGame()
+                            onlineVM.hostStartGame(roundsPerPlayer: selectedRounds)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill")
@@ -357,7 +413,8 @@ struct PrivateRoomView: View {
                 let room = try await RoomService.shared.createPrivateRoom(
                     hostID: AuthService.shared.currentUID,
                     hostName: router.playerName,
-                    password: password.isEmpty ? nil : password
+                    password: password.isEmpty ? nil : password,
+                    roundsPerPlayer: selectedRounds
                 )
                 createdCode = room.code
                 onlineVM.startObserving()

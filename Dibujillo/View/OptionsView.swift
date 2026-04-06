@@ -43,38 +43,38 @@ struct OptionsView: View {
                 VStack(spacing: 20) {
                     
                     // ── Partida ───────────────────────────────────────
-                    SketchSectionHeader(title: "Partida", number: 1)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Duración de ronda")
-                                .font(SketchDraft.fontBold(14))
-                                .foregroundStyle(SketchDraft.inkPrimary)
-                            Spacer()
-                            Text("\(Int(roundDuration))s")
-                                .font(SketchDraft.fontCaption(12))
-                                .foregroundStyle(SketchDraft.inkSecondary)
-                                .sketchBadge(color: .blue)
-                        }
-                        
-                        Slider(value: $roundDuration, in: 30...120, step: 10)
-                            .tint(SketchDraft.inkPrimary)
-                        
-                        // Tick labels
-                        HStack {
-                            Text("30s")
-                            Spacer()
-                            Text("75s")
-                            Spacer()
-                            Text("120s")
-                        }
-                        .font(SketchDraft.fontCaption(9))
-                        .foregroundStyle(SketchDraft.inkTertiary)
-                    }
-                    .sketchCard(padding: 16, showMargin: false)
-                    .padding(.horizontal, 24)
+//                    SketchSectionHeader(title: "Partida", number: 1)
+//                        .padding(.horizontal, 24)
+//                        .padding(.top, 20)
+//                    
+//                    VStack(alignment: .leading, spacing: 12) {
+//                        HStack {
+//                            Text("Duración de ronda")
+//                                .font(SketchDraft.fontBold(14))
+//                                .foregroundStyle(SketchDraft.inkPrimary)
+//                            Spacer()
+//                            Text("\(Int(roundDuration))s")
+//                                .font(SketchDraft.fontCaption(12))
+//                                .foregroundStyle(SketchDraft.inkSecondary)
+//                                .sketchBadge(color: .blue)
+//                        }
+//                        
+//                        Slider(value: $roundDuration, in: 30...120, step: 10)
+//                            .tint(SketchDraft.inkPrimary)
+//                        
+//                        // Tick labels
+//                        HStack {
+//                            Text("30s")
+//                            Spacer()
+//                            Text("75s")
+//                            Spacer()
+//                            Text("120s")
+//                        }
+//                        .font(SketchDraft.fontCaption(9))
+//                        .foregroundStyle(SketchDraft.inkTertiary)
+//                    }
+//                    .sketchCard(padding: 16, showMargin: false)
+//                    .padding(.horizontal, 24)
                     
                     // ── Preferencias ──────────────────────────────────
                     SketchSectionHeader(title: "Sonido", number: 2)

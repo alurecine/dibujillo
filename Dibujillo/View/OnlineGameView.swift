@@ -505,6 +505,10 @@ struct OnlineGameView: View {
             Spacer()
             
             Text("🏆").font(.system(size: 48))
+            Text("Ronda \(vm.room?.currentRoundNumber ?? 0)/\(vm.room?.totalRounds ?? 0)")
+                .font(SketchDraft.fontCaption(12))
+                .foregroundColor(SketchDraft.inkSecondary)
+                .sketchBadge(color: .neutral)
             Text("Resultados parciales")
                 .font(SketchDraft.fontTitle(30))
                 .foregroundStyle(SketchDraft.inkPrimary)

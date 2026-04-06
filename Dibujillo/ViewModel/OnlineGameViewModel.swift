@@ -323,10 +323,10 @@ final class OnlineGameViewModel: ObservableObject {
     
     // MARK: - Host Actions
     
-    func hostStartGame() {
+    func hostStartGame(roundsPerPlayer: Int = 1) {
         Task {
             do {
-                try await roomService.startGame()
+                try await roomService.startGame(roundsPerPlayer: roundsPerPlayer)
                 try await roomService.nextRound()
             } catch {
                 print("Start game error: \(error)")

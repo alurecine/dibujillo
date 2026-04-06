@@ -35,10 +35,11 @@ final class RoomService: ObservableObject {
         hostName: String,
         password: String? = nil,
         maxPlayers: Int = 8,
-        roundDuration: Int = 80
+        roundDuration: Int = 80,
+        roundsPerPlayer: Int = 1
     ) async throws -> RoomModel {
         let code = RoomCodeGenerator.generate()
-        
+
         var room = RoomModel(
             code: code,
             type: .privateRoom,
@@ -46,7 +47,8 @@ final class RoomService: ObservableObject {
             hostName: hostName,
             password: password?.isEmpty == true ? nil : password,
             maxPlayers: maxPlayers,
-            roundDuration: roundDuration
+            roundDuration: roundDuration,
+            roundsPerPlayer: roundsPerPlayer
         )
         
         let docRef = db.collection(roomsCollection).document(code)
@@ -226,14 +228,14 @@ final class RoomService: ObservableObject {
     // MARK: - Game State Updates
     
     /// Iniciar la partida (solo el host)
-    func startGame() async throws {
+    func startGame(roundsPerPlayer: Int = 1) async throws {
         guard let ref = roomRef, var room = currentRoom else { return }
         guard room.players.count >= 2 else {
             throw RoomError.notEnoughPlayers
         }
-        
+
         room.status = .playing
-        room.totalRounds = room.players.count
+        room.totalRounds = room.players.count * roundsPerPlayer
         room.currentRoundNumber = 0
         room.updatedAt = .now
         
@@ -265,8 +267,8 @@ final class RoomService: ObservableObject {
             return
         }
         
-        // Asignar dibujante rotativo
-        let drawerIndex = room.currentRoundNumber - 1
+        // Asignar dibujante rotativo (wraps across multiple rounds per player)
+        let drawerIndex = (room.currentRoundNumber - 1) % room.players.count
         for i in room.players.indices {
             room.players[i].isDrawing = (i == drawerIndex)
             room.players[i].hasGuessedThisRound = false
