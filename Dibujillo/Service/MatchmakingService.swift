@@ -21,6 +21,7 @@ final class MatchmakingService: ObservableObject {
     @Published var estimatedWait: String = "Buscando..."
     /// Segundos restantes del countdown (aparece cuando hay jugadores suficientes)
     @Published var timeLeft: Int? = nil
+    @Published var roundsPerPlayer: Int = 1
     
     enum MatchState: Equatable {
         case idle
@@ -37,8 +38,13 @@ final class MatchmakingService: ObservableObject {
     private var pollTimer: AnyCancellable?
     
     private let waitDuration: TimeInterval = 100      // Máximo espera sin jugadores
-    private let launchCountdown: TimeInterval = 20   // Countdown al alcanzar mínimo
-    private let minPlayersToStart = 2 // TODO: cambiar cuando salga
+    private let launchCountdown: TimeInterval = 30   // Countdown al alcanzar mínimo
+    
+#if DEBUG
+    private let minPlayersToStart = 2 
+#else
+    private let minPlayersToStart = 3
+#endif
     
     // MARK: - Start Matchmaking
     
@@ -195,7 +201,7 @@ final class MatchmakingService: ObservableObject {
         estimatedWait = "Iniciando partida..."
         guard roomService.currentRoom?.status == .waiting else { return }
         do {
-            try await roomService.startGame()
+            try await roomService.startGame(roundsPerPlayer: roundsPerPlayer)
             try await roomService.nextRound()  // asigna dibujante y palabra de la primera ronda
             state = .matched(roomCode: roomCode)
         } catch {
