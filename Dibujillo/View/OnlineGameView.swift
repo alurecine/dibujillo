@@ -12,6 +12,7 @@ struct OnlineGameView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var keyboard = KeyboardObserver()
     @State private var showExitPanel = false
+    @State private var showExitConfirmation = false
     
     var body: some View {
         ZStack {
@@ -32,6 +33,31 @@ struct OnlineGameView: View {
         .notebookBackground()
         .overlay(alignment: .trailing) {
             exitTabOverlay
+        }
+        // Confirmación antes de salir durante una partida activa
+        .overlay {
+            if showExitConfirmation {
+                exitConfirmationOverlay
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .zIndex(150)
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: showExitConfirmation)
+        // Modal de sala vacía — bloquea la UI hasta que el jugador sale
+        .overlay {
+            if vm.isAlonePlaying {
+                alonePlayingOverlay
+                    .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    .zIndex(200)
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: vm.isAlonePlaying)
+        // Toast cuando alguien abandona la sala durante la partida
+        .onChange(of: vm.playerLeft) { _, newVal in
+            if let name = newVal {
+                toastManager.show("🚪 \(name) abandonó la sala", type: .info)
+                vm.playerLeft = nil
+            }
         }
         .onAppear {
             vm.startObserving()
@@ -56,10 +82,9 @@ struct OnlineGameView: View {
                             .foregroundStyle(SketchDraft.inkPrimary)
                         
                         Button {
-                            InterstitialAdManager.shared.showAd {
-                                vm.leaveRoom()
-                                dismiss()
-                                router.goTo(.mainMenu)
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                showExitPanel = false
+                                showExitConfirmation = true
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -137,6 +162,147 @@ struct OnlineGameView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: showExitPanel)
     }
     
+    // MARK: - Exit Confirmation Modal
+
+    private var exitConfirmationOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        showExitConfirmation = false
+                    }
+                }
+
+            VStack(spacing: DSSpacing.lg) {
+                Text("🚪")
+                    .font(.system(size: 52))
+
+                VStack(spacing: DSSpacing.sm) {
+                    Text("¿Salir de la partida?")
+                        .font(SketchDraft.fontTitle(22))
+                        .foregroundStyle(SketchDraft.inkPrimary)
+                        .multilineTextAlignment(.center)
+
+                    Text("Abandonar partidas en curso afecta la experiencia de los demás jugadores y se tendrá en cuenta en el futuro.")
+                        .font(SketchDraft.fontBody(13))
+                        .foregroundStyle(SketchDraft.inkSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                VStack(spacing: DSSpacing.sm) {
+                    Button {
+                        InterstitialAdManager.shared.showAd {
+                            vm.leaveRoom()
+                            dismiss()
+                            router.goTo(.mainMenu)
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 13, weight: .semibold))
+                            Text("Salir de todos modos")
+                                .font(SketchDraft.fontBold(14))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .sketchButton(style: .danger)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showExitConfirmation = false
+                        }
+                    } label: {
+                        Text("Seguir jugando")
+                            .font(SketchDraft.fontBold(14))
+                            .frame(maxWidth: .infinity)
+                            .sketchButton(style: .ghost)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(DSSpacing.xxl)
+            .frame(maxWidth: 320)
+            .background {
+                RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                    .fill(SketchDraft.paper)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                            .strokeBorder(
+                                SketchDraft.dashedBorder,
+                                style: StrokeStyle(
+                                    lineWidth: SketchDraft.borderWidth,
+                                    dash: SketchDraft.dashPattern
+                                )
+                            )
+                    )
+                    .modifier(DSShadow.elevated())
+            }
+        }
+    }
+
+    // MARK: - Alone Playing Modal
+
+    private var alonePlayingOverlay: some View {
+        ZStack {
+            // Fondo oscuro bloqueante (no dismissible tocando afuera)
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+
+            VStack(spacing: DSSpacing.lg) {
+                Text("😔")
+                    .font(.system(size: 64))
+
+                Text("No hay más jugadores")
+                    .font(SketchDraft.fontTitle(24))
+                    .foregroundStyle(SketchDraft.inkPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+
+                Text("Los demás abandonaron.\nPresioná para volver al menú.")
+                    .font(SketchDraft.fontBody(15))
+                    .foregroundStyle(SketchDraft.inkSecondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    InterstitialAdManager.shared.showAd {
+                        vm.leaveRoom()
+                        dismiss()
+                        router.goTo(.mainMenu)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Salir")
+                            .font(SketchDraft.fontBold(15))
+                    }
+                    .sketchButton(style: .danger)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(DSSpacing.xxl)
+            .frame(maxWidth: 320)
+            .background {
+                RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                    .fill(SketchDraft.paper)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                            .strokeBorder(
+                                SketchDraft.dashedBorder,
+                                style: StrokeStyle(
+                                    lineWidth: SketchDraft.borderWidth,
+                                    dash: SketchDraft.dashPattern
+                                )
+                            )
+                    )
+                    .modifier(DSShadow.elevated())
+            }
+        }
+    }
+
     // MARK: - Online Lobby (fallback if shown)
     
     private var onlineLobby: some View {
@@ -505,9 +671,14 @@ struct OnlineGameView: View {
             Spacer()
             
             Text("🏆").font(.system(size: 48))
+            Text("Ronda \(vm.room?.currentRoundNumber ?? 0)/\(vm.room?.totalRounds ?? 0)")
+                .font(SketchDraft.fontCaption(12))
+                .foregroundColor(SketchDraft.inkSecondary)
+                .sketchBadge(color: .neutral)
             Text("Resultados parciales")
                 .font(SketchDraft.fontTitle(30))
                 .foregroundStyle(SketchDraft.inkPrimary)
+                .lineLimit(2)
             
             if let room = vm.room {
                     VStack(spacing: DSSpacing.md) {

@@ -71,7 +71,7 @@ struct NameEntryView: View {
             Spacer()
             
             // ── Footer ────────────────────────────────────────────────
-            Text("v1.0 — hecho con 💜")
+            Text("v1.0 — hecho con 💜 por aludev")
                 .font(SketchDraft.fontCaption(12))
                 .foregroundStyle(SketchDraft.inkTertiary)
                 .padding(.bottom, 20)

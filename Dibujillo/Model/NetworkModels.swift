@@ -69,8 +69,9 @@ struct RoomModel: Codable, Identifiable {
     var maxPlayers: Int
     
     // Game state
+    var roundsPerPlayer: Int              // Cuántas veces dibuja cada jugador
     var currentRoundNumber: Int
-    var totalRounds: Int                  // = players.count (cada uno dibuja 1 vez)
+    var totalRounds: Int                  // = players.count * roundsPerPlayer
     var currentWord: String?
     var currentDrawerID: String?
     var roundStartedAt: Date?
@@ -92,7 +93,8 @@ struct RoomModel: Codable, Identifiable {
         hostName: String,
         password: String? = nil,
         maxPlayers: Int = 8,
-        roundDuration: Int = 80
+        roundDuration: Int = 80,
+        roundsPerPlayer: Int = 1
     ) {
         self.code = code
         self.password = password
@@ -102,6 +104,7 @@ struct RoomModel: Codable, Identifiable {
         self.minPlayers = 2
         self.maxPlayers = maxPlayers
         self.players = [OnlinePlayer(id: hostID, name: hostName, isHost: true)]
+        self.roundsPerPlayer = roundsPerPlayer
         self.currentRoundNumber = 0
         self.totalRounds = 0
         self.currentWord = nil

@@ -15,6 +15,7 @@ struct OnlineLobbyView: View {
     @State private var navigateToGame = false
     @State private var isLeavingToGame = false
     @State private var animating = false
+    @State private var selectedRounds: Int = 1
     
     var body: some View {
         VStack(spacing: 0) {
@@ -38,64 +39,120 @@ struct OnlineLobbyView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 8)
             
-            Spacer()
-            
-            // ── Status center ─────────────────────────────────────────
-            VStack(spacing: 20) {
-                searchAnimation
-                
-                Text(titleText)
-                    .font(SketchDraft.fontTitle(22))
-                    .foregroundStyle(SketchDraft.inkPrimary)
-                    .multilineTextAlignment(.center)
-                
-                if let secs = matchmaking.timeLeft {
-                    CountdownView(seconds: secs)
-                }
-                
-                Text(matchmaking.estimatedWait)
-                    .font(SketchDraft.fontBody(13))
-                    .foregroundStyle(SketchDraft.inkSecondary)
-                
-                if matchmaking.playersFound > 0 {
-                    playersCounter
-                }
-            }
             
             Spacer()
             
-            // ── Room info ─────────────────────────────────────────────
-            if let room = roomService.currentRoom {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("sala")
-                            .font(SketchDraft.fontCaption(9))
-                            .foregroundStyle(SketchDraft.inkTertiary)
-                            .tracking(2)
-                        Text(room.code)
-                            .font(SketchDraft.fontBold(13))
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    // ── Status center ─────────────────────────────────────────
+                    VStack(spacing: 20) {
+                        searchAnimation
+                        
+                        Text(titleText)
+                            .font(SketchDraft.fontTitle(22))
                             .foregroundStyle(SketchDraft.inkPrimary)
-                    }
-                    
-                    SketchDivider()
-                    
-                    ForEach(room.players, id: \.id) { player in
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(player.isConnected ? SketchDraft.accentGreen : SketchDraft.pencilGray.opacity(0.4))
-                                .frame(width: 7, height: 7)
-                            Text(player.name)
-                                .font(SketchDraft.fontBody(13))
+                            .multilineTextAlignment(.center)
+                        
+                        if let secs = matchmaking.timeLeft {
+                            CountdownView(seconds: secs)
+                        }
+                        
+                        // Selector de rondas (solo cuando hay countdown y soy host)
+                        if matchmaking.timeLeft != nil,
+                           let room = roomService.currentRoom,
+                           room.hostID == AuthService.shared.currentUID {
+                            
+                            VStack(alignment: .leading, spacing: DSSpacing.sm) {
+                                SketchSectionHeader(title: "Rondas por jugador", number: nil)
+                                    .padding(.horizontal, DSSpacing.lg)
+                                
+                                HStack(spacing: DSSpacing.sm) {
+                                    ForEach([1, 2, 4, 6], id: \.self) { rounds in
+                                        Button {
+                                            selectedRounds = rounds
+                                            matchmaking.roundsPerPlayer = rounds
+                                        } label: {
+                                            VStack(spacing: DSSpacing.xs) {
+                                                Text("\(rounds)")
+                                                    .font(SketchDraft.fontBold(16))
+                                                Text(rounds == 1 ? "ronda" : "rondas")
+                                                    .font(SketchDraft.fontCaption(10))
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, DSSpacing.sm)
+                                            .background(
+                                                selectedRounds == rounds
+                                                ? SketchDraft.inkPrimary.opacity(0.08)
+                                                : Color.clear
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: SketchDraft.cornerRadius)
+                                                    .strokeBorder(
+                                                        selectedRounds == rounds
+                                                        ? SketchDraft.inkPrimary.opacity(0.4)
+                                                        : SketchDraft.dashedBorder,
+                                                        style: StrokeStyle(
+                                                            lineWidth: SketchDraft.borderWidth,
+                                                            dash: SketchDraft.dashPattern
+                                                        )
+                                                    )
+                                            )
+                                            .cornerRadius(SketchDraft.cornerRadius)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
                                 .foregroundStyle(SketchDraft.inkPrimary)
-                            Spacer()
-                            if player.isHost { Text("host").sketchBadge(color: .blue) }
-                            if player.id == AuthService.shared.currentUID { Text("tú").sketchBadge(color: .neutral) }
+                                .padding(.horizontal, DSSpacing.lg)
+                            }
+                        }
+                        
+                        Text(matchmaking.estimatedWait)
+                            .font(SketchDraft.fontBody(13))
+                            .foregroundStyle(SketchDraft.inkSecondary)
+                        
+                        if matchmaking.playersFound > 0 {
+                            playersCounter
                         }
                     }
+                    
+                    // ── Room info ─────────────────────────────────────────────
+                    if let room = roomService.currentRoom {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("sala")
+                                    .font(SketchDraft.fontCaption(9))
+                                    .foregroundStyle(SketchDraft.inkTertiary)
+                                    .tracking(2)
+                                Text(room.code)
+                                    .font(SketchDraft.fontBold(13))
+                                    .foregroundStyle(SketchDraft.inkPrimary)
+                            }
+                            
+                            SketchDivider()
+                            
+                            ForEach(room.players, id: \.id) { player in
+                                HStack(spacing: 10) {
+                                    Circle()
+                                        .fill(player.isConnected ? SketchDraft.accentGreen : SketchDraft.pencilGray.opacity(0.4))
+                                        .frame(width: 7, height: 7)
+                                    Text(player.name)
+                                        .font(SketchDraft.fontBody(13))
+                                        .foregroundStyle(SketchDraft.inkPrimary)
+                                    Spacer()
+                                    if player.isHost { Text("host").sketchBadge(color: .blue) }
+                                    if player.id == AuthService.shared.currentUID { Text("tú").sketchBadge(color: .neutral) }
+                                }
+                            }
+                        }
+                        .sketchCard()
+                        .padding(.horizontal, 24)
+                    }
                 }
-                .sketchCard()
-                .padding(.horizontal, 24)
+                .padding(.vertical)
             }
+            
             
             Spacer()
             
